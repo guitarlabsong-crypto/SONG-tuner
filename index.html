@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner v10 - High-Freq Optimized</title>
+    <title>SYM Guitar Tuner v12 - High-Freq Precision</title>
     <style>
-        /* [1] 기본 레이아웃 */
+        /* [1] 전체 레이아웃 설정 */
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
@@ -14,11 +14,12 @@
             user-select: none; overflow: hidden;
         }
 
-        /* [2] 상단 디스플레이 */
+        /* [2] 상단 음명 및 주파수 표시 */
         .top-display { text-align: center; margin-top: 10px; }
         .note-alpha {
             font-size: 7.5rem; font-weight: 900; color: #7f8c8d; line-height: 1;
         }
+        /* 정튜닝 성공 시 네온 조명 효과 */
         .note-alpha.tuned {
             color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 50px #2ecc71;
         }
@@ -27,7 +28,7 @@
             margin-top: 5px; font-weight: bold;
         }
 
-        /* [3] 중앙 유리관 */
+        /* [3] 중앙 바늘 이동 경로 (유리관) */
         .glass-rect-container {
             position: relative; width: 92%; max-width: 550px; height: 170px;
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(0, 0, 0, 0.1);
@@ -36,13 +37,14 @@
             display: flex; align-items: center; overflow: hidden;
         }
 
-        /* [4] 커스텀 바늘 (검정 중심 + 주황 테두리) */
+        /* [4] 바늘 디자인 (검정 중심 + 주황 테두리) */
         .needle {
             position: absolute; width: 8px; height: 100%; background: #000; 
             border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43; 
             left: 5%; transform: translateX(-50%); z-index: 10;
             box-shadow: 0 0 10px rgba(255, 159, 67, 0.5); box-sizing: border-box;
         }
+        /* 정튜닝 시 바늘 테두리 녹색 변경 */
         .needle.tuned { 
             border-left-color: #2ecc71; border-right-color: #2ecc71;
             box-shadow: 0 0 20px #2ecc71; 
@@ -66,17 +68,21 @@
             transform: translateX(-50%); z-index: 2;
         }
 
-        /* [5] 하단 영역 */
+        /* [5] 하단 영역 및 축소된 버튼 */
         .bottom-area {
-            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 20px;
+            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px;
         }
         .tuner-btn {
-            padding: 22px 85px; font-size: 1.5rem; font-weight: bold;
-            background: #34495e; border: none; color: white; border-radius: 50px; cursor: pointer;
+            padding: 12px 40px; /* 버튼 크기를 작게 조절 */
+            font-size: 1.1rem; /* 글자 크기 조정 */
+            font-weight: bold;
+            background: #34495e; border: none; color: white; border-radius: 30px; cursor: pointer;
+            transition: background 0.3s;
         }
-        .tuner-btn.running { background: #c0392b; }
+        .tuner-btn.running { background: #c0392b; } /* 정지 버튼은 빨간색 */
+
         .lab-watermark {
-            color: #7f8c8d; font-weight: bold; letter-spacing: 1.5px; font-size: 0.95rem;
+            color: #7f8c8d; font-weight: bold; letter-spacing: 1.5px; font-size: 0.85rem;
         }
     </style>
 </head>
@@ -99,16 +105,15 @@
     </div>
 
     <script>
+        // 전역 변수 관리
         let audioContext, analyser, animationId;
         let isRunning = false;
         let lastBeepTime = 0;
 
-        /**
-         * 물리 엔진 설정 - 200Hz 이상에서 더 묵직하게 변하도록 로직 추가
-         */
+        // 물리 및 필터링 변수
         let currentPos = 5;      
         let velocity = 0;        
-        let smoothedCents = 0;   // 고음역대 떨림 방지용 필터링 변수
+        let smoothedCents = 0;   // 고음역대 미세 떨림 방지용 필터값
         const gravity = 0.8;      
 
         const needleEl = document.getElementById('needle');
@@ -119,6 +124,9 @@
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+        /**
+         * 눈금 동적 생성 함수
+         */
         function initTicks() {
             for (let i = -50; i <= 50; i += 5) {
                 const tick = document.createElement('div');
@@ -135,11 +143,15 @@
         }
         initTicks();
 
+        // 버튼 클릭 핸들러
         startBtn.addEventListener('click', async () => {
             if (isRunning) { stopTuner(); return; }
             startTuner();
         });
 
+        /**
+         * 오디오 분석 시작
+         */
         async function startTuner() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             audioContext = new AudioCtx();
@@ -155,9 +167,12 @@
                 startBtn.innerText = "튜너 중지";
                 startBtn.classList.add('running');
                 updateLoop();
-            } catch (err) { alert("마이크 권한이 필요합니다."); }
+            } catch (err) { alert("마이크 권한 요청이 거절되었습니다."); }
         }
 
+        /**
+         * 튜너 작동 중지
+         */
         function stopTuner() {
             cancelAnimationFrame(animationId);
             if (audioContext) audioContext.close();
@@ -170,6 +185,9 @@
             needleEl.classList.remove('tuned');
         }
 
+        /**
+         * 실시간 주파수 분석 루프 (핵심 업데이트 로직 포함)
+         */
         function updateLoop() {
             if (!isRunning) return;
 
@@ -179,26 +197,22 @@
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
             if (pitch !== -1 && pitch > 50 && pitch < 1200) {
-                const intPitch = Math.round(pitch); // 주파수 정수화
+                const intPitch = Math.round(pitch); // 정수 Hz
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
-                // [핵심] 200Hz 이상 고음역대 대응 로직
                 let followSpeed, frictionValue;
 
+                // [업데이트] 200Hz 이상 고음 줄 대응 필터링 및 물리 계수 조정
                 if (pitch >= 200) {
-                    // 고음역대: 바늘이 매우 묵직하고 천천히 움직이게 설정 (안정성 극대화)
-                    followSpeed = 0.05; 
-                    frictionValue = 0.7;
-                    // 저역 통과 필터(LPF): 새로운 센트값의 10%만 반영하여 떨림 억제
-                    smoothedCents = (smoothedCents * 0.9) + (rawCents * 0.1);
+                    followSpeed = 0.05; // 고음일수록 바늘을 아주 무겁게 이동 (0.05)
+                    frictionValue = 0.7; // 고음일수록 마찰력을 높여 떨림 방지
+                    smoothedCents = (smoothedCents * 0.92) + (rawCents * 0.08); // 고음 필터링 대폭 강화
                 } else {
-                    // 저음역대: 반응성을 높여 시원하게 움직이게 설정
-                    followSpeed = 0.15;
+                    followSpeed = 0.15; // 저음은 반응성 위주로
                     frictionValue = 0.8;
-                    // 빠른 반응을 위해 필터 비중 낮춤
-                    smoothedCents = (smoothedCents * 0.5) + (rawCents * 0.5);
+                    smoothedCents = (smoothedCents * 0.6) + (rawCents * 0.4);
                 }
 
                 noteEl.innerText = noteStrings[noteNum % 12];
@@ -207,20 +221,22 @@
                 let targetPos = 50 + (smoothedCents * 0.9);
                 targetPos = Math.max(5, Math.min(95, targetPos));
 
-                // 물리 엔진 업데이트
+                // 물리 엔진으로 바늘 위치 계산
                 velocity += (targetPos - currentPos) * followSpeed;
                 velocity *= frictionValue; 
 
-                if (Math.abs(rawCents) <= 3) {
+                // [업데이트] 오차범위 1Hz 이내면 무조건 정튜닝 인정
+                // 고음역대에서 센트 단위가 예민하므로 절대값 Hz 차이로 판정 기준 변경
+                if (Math.abs(pitch - standardFreq) <= 1.0) {
                     noteEl.classList.add('tuned');
                     needleEl.classList.add('tuned');
-                    playNoteBeep(standardFreq); 
+                    playNoteBeep(standardFreq); // 성공 효과음
                 } else {
                     noteEl.classList.remove('tuned');
                     needleEl.classList.remove('tuned');
                 }
             } else {
-                // 무음 시 복귀 로직
+                // 무음 시 왼쪽으로 스르르 복귀
                 velocity += (5 - currentPos) * 0.02; 
                 velocity -= gravity * 0.1;
                 velocity *= 0.8;
@@ -232,23 +248,23 @@
             if (currentPos <= 5) { currentPos = 5; velocity = 0; }
             if (currentPos >= 95) { currentPos = 95; velocity = 0; }
 
-            needleEl.style.left = currentPos + "%";
+            needleEl.style.left = currentPos + "%"; // 바늘 위치 적용
             animationId = requestAnimationFrame(updateLoop);
         }
 
         /**
-         * 정튜닝 시 해당 음명 소리 재생
+         * 정튜닝 시 알림음 발생 함수
          */
         function playNoteBeep(freq) {
             const now = Date.now();
-            if (now - lastBeepTime < 900) return;
+            if (now - lastBeepTime < 950) return; // 알림음 간격 확보
             lastBeepTime = now;
 
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, audioContext.currentTime);
-            gain.gain.setValueAtTime(0.05, audioContext.currentTime);
+            gain.gain.setValueAtTime(0.04, audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
             osc.connect(gain);
             gain.connect(audioContext.destination);
@@ -257,13 +273,13 @@
         }
 
         /**
-         * 주파수 추출 알고리즘 (고음역 최적화)
+         * 주파수 추출 알고리즘
          */
         function getPitch(buf, sampleRate) {
             let size = buf.length;
             let rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            // 고음역 노이즈 무시를 위해 임계값 살짝 상향 (0.009)
+            // 노이즈 차단을 위해 임계값을 살짝 높게 유지 (0.009)
             if (Math.sqrt(rms / size) < 0.009) return -1;
 
             let c = new Array(size).fill(0);
