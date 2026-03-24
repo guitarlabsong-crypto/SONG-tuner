@@ -3,119 +3,187 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner (Sensitive Mode)</title>
+    <title>SYM Guitar Tuner (Glass Tube v3)</title>
     <style>
+        /* [요청 2] 전체 배경은 그레이색 */
         body { 
-            background: #0f0f0f; 
-            color: white; 
+            background: #d1d8e0; /* 밝은 회색 계열 */
+            color: #333; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
             justify-content: center; 
             min-height: 100vh; 
             margin: 0; 
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
         }
 
-        /* [디자인] 가로로 긴 유리관 박스 */
-        .glass-container {
+        /* [요청 1] 강화된 유리관 디자인 */
+        .glass-tube-container {
             position: relative;
             width: 85%;
-            max-width: 450px;
-            height: 120px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
-            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.05);
+            max-width: 480px;
+            height: 90px;
+            /* 3D 유리관 효과를 위한 복합 배경 및 테두리 */
+            background: linear-gradient(to bottom, 
+                rgba(255, 255, 255, 0.3) 0%, 
+                rgba(255, 255, 255, 0.05) 15%, 
+                rgba(0, 0, 0, 0.05) 50%, 
+                rgba(255, 255, 255, 0.15) 85%, 
+                rgba(255, 255, 255, 0.4) 100%);
+            border: 2px solid rgba(0, 0, 0, 0.15);
+            border-radius: 45px; /* 완전히 둥근 유리관 형태 */
+            
+            /* 내부 심도 및 외부 그림자 */
+            box-shadow: 
+                inset 0 2px 5px rgba(255, 255, 255, 0.5), /* 상단 내부 하이라이트 */
+                inset 0 -2px 5px rgba(0, 0, 0, 0.1),    /* 하단 내부 그림자 */
+                0 5px 15px rgba(0, 0, 0, 0.2);          /* 전체 외부 그림자 */
+            
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-            margin-bottom: 25px;
+            overflow: hidden; /* 바늘이 둥근 모서리 밖으로 안 나가게 */
+            margin-bottom: 30px;
         }
 
-        /* 유리 질감 하이라이트 */
-        .glass-container::before {
+        /* 유리관 상단 눈부심 (Glossy) 효과 */
+        .glass-tube-container::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; height: 40%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 100%);
+            top: 8px; left: 20px; right: 20px; height: 15px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 10px;
+            filter: blur(2px);
             pointer-events: none;
+            z-index: 2;
         }
 
-        /* [바늘] 좌우로 예민하게 움직이는 바늘 */
+        /* [바늘] 좌우 평행 이동 바늘 (예민한 반응 유지) */
         .needle {
             position: absolute;
-            width: 3px;
-            height: 80%;
-            background: #ff4757; /* 붉은색 바늘 */
-            left: 50%;
-            /* transform: translateX(-50%)를 유지하며 좌우로 이동 */
+            width: 4px;
+            height: 70%;
+            background: #e74c3c; /* 선명한 빨간색 */
+            border-radius: 2px;
+            left: 50%; /* 초기 중심 */
             transform: translateX(-50%);
-            /* 예민한 반응을 위해 transition 시간을 매우 짧게 설정 */
-            transition: left 0.02s linear; 
+            
+            /* [로직] 예민함을 유지하되 무입력 시 이동을 위해 transition 시간을 미세하게 조절 (0.05s) */
+            transition: left 0.05s ease-out, background 0.2s ease; 
             z-index: 10;
-            box-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+            box-shadow: 0 0 8px rgba(231, 76, 60, 0.7);
+        }
+        
+        /* 정튜닝 시 바늘 색상 변경 */
+        .needle.tuned {
+            background: #2ecc71; /* 초록색 */
+            box-shadow: 0 0 12px rgba(46, 204, 113, 1);
         }
 
-        /* 중앙 정튜닝 가이드 라인 */
+        /* 중앙 가이드 라인 */
         .center-line {
             position: absolute;
             width: 2px;
             height: 100%;
-            background: #2ecc71;
+            background: rgba(0, 0, 0, 0.1);
             left: 50%;
             transform: translateX(-50%);
-            opacity: 0.5;
+            z-index: 1;
         }
 
-        /* 눈금 표시 */
+        /* 배경 눈금 (유리 내부) */
         .ticks {
             position: absolute;
-            width: 100%;
+            width: 80%; /* 유리관 안쪽에만 배치 */
             height: 100%;
             display: flex;
             justify-content: space-between;
-            align-items: flex-end;
-            padding: 0 10px;
-            box-sizing: border-box;
+            align-items: center;
             pointer-events: none;
+            z-index: 0;
+            opacity: 0.3;
         }
-        .tick { width: 1px; height: 15px; background: rgba(255,255,255,0.2); }
-        .tick.main { height: 30px; background: rgba(255,255,255,0.5); }
+        .tick { width: 1px; height: 10px; background: #000; }
+        .tick.main { height: 25px; width: 2px; }
 
-        /* 음명 및 정보 표시 */
-        .display { text-align: center; margin-bottom: 40px; }
-        .note { font-size: 4.5rem; font-weight: 900; color: #2ecc71; line-height: 1; }
-        .freq { font-size: 1.1rem; color: #888; margin-top: 10px; }
+        /* 음명 디스플레이 영역 */
+        .display-container {
+            text-align: center;
+            margin-bottom: 50px;
+        }
 
-        /* 버튼 */
-        .btn {
-            padding: 16px 45px;
-            font-size: 1.1rem;
+        /* [요청 4] 알파벳 네온 불빛 효과 */
+        .note-alpha {
+            font-size: 5rem;
+            font-weight: 900;
+            color: #555; /* 평소에는 어두운 색 */
+            line-height: 1;
+            transition: color 0.2s ease, text-shadow 0.2s ease;
+            letter-spacing: -2px;
+        }
+
+        /* 정튜닝 시 불이 들어오는 클래스 */
+        .note-alpha.tuned {
+            color: #fff; /* 글자 자체를 흰색으로 */
+            /* 강력한 초록색 네온 발광 효과 */
+            text-shadow: 
+                0 0 5px #fff,
+                0 0 10px #fff,
+                0 0 20px #2ecc71,
+                0 0 30px #2ecc71,
+                0 0 40px #2ecc71,
+                0 0 55px #2ecc71,
+                0 0 75px #2ecc71;
+        }
+
+        .freq-display {
+            font-size: 1.2rem;
+            color: #7f8c8d;
+            margin-top: 15px;
+            font-family: monospace;
+            letter-spacing: 1px;
+        }
+
+        /* 버튼 스타일 */
+        .tuner-btn {
+            padding: 18px 50px;
+            font-size: 1.2rem;
             font-weight: bold;
-            background: #2ecc71;
+            background: #2c3e50; /* 어두운 버튼 */
             border: none;
             color: white;
-            border-radius: 30px;
+            border-radius: 40px;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .tuner-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .tuner-btn.running {
+            background: #e74c3c;
         }
 
-        /* [요청사항] 워터마크 주황색 */
-        .watermark {
+        /* 워터마크 (주황색, 유지) */
+        .lab-watermark {
             position: fixed;
             bottom: 20px;
             color: #ff9f43; /* 주황색 */
             font-weight: bold;
             font-size: 0.9rem;
             letter-spacing: 1px;
+            pointer-events: none;
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
 
-    <div class="glass-container">
+    <div class="glass-tube-container">
         <div class="ticks">
             <div class="tick main"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
             <div class="tick main"></div>
@@ -125,14 +193,14 @@
         <div id="needle" class="needle"></div>
     </div>
 
-    <div class="display">
-        <div id="note" class="note">--</div>
-        <div id="freq" class="freq">0.00 Hz</div>
+    <div class="display-container">
+        <div id="noteDisplay" class="note-alpha">--</div>
+        <div id="freqDisplay" class="freq-display">0.00 Hz</div>
     </div>
 
-    <button id="startBtn" class="btn">튜너 시작</button>
+    <button id="startBtn" class="tuner-btn">튜너 시작</button>
 
-    <div class="watermark">SONG,YOUNG-MIN Guitar Lab</div>
+    <div class="lab-watermark">SONG,YOUNG-MIN Guitar Lab</div>
 
     <script>
         let audioContext;
@@ -140,19 +208,34 @@
         let isRunning = false;
 
         const needleEl = document.getElementById('needle');
-        const noteEl = document.getElementById('note');
-        const freqEl = document.getElementById('freq');
+        const noteEl = document.getElementById('noteDisplay');
+        const freqEl = document.getElementById('freqDisplay');
         const startBtn = document.getElementById('startBtn');
 
-        const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
         startBtn.addEventListener('click', async () => {
             if (isRunning) {
-                location.reload(); // 간단하게 중지 및 초기화
+                // 중지 시 초기화
+                if (audioContext) await audioContext.close();
+                isRunning = false;
+                startBtn.innerText = "튜너 시작";
+                startBtn.classList.remove('running');
+                noteEl.innerText = "--";
+                noteEl.classList.remove('tuned'); // 불 끄기
+                freqEl.innerText = "0.00 Hz";
+                // [요청 3] 중지 시에도 바늘을 왼쪽 끝으로 이동
+                needleEl.style.left = "5%"; 
+                needleEl.classList.remove('tuned');
                 return;
             }
 
             const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                alert("이 브라우저는 Web Audio API를 지원하지 않습니다.");
+                return;
+            }
+
             audioContext = new AudioContext();
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
@@ -162,46 +245,75 @@
                 audioContext.createMediaStreamSource(stream).connect(analyser);
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
-                startBtn.style.background = "#e74c3c";
-                update();
+                startBtn.classList.add('running');
+                
+                // 루프 시작 시 바늘 위치 초기화 (왼쪽 끝에서 시작)
+                needleEl.style.left = "5%";
+                
+                updateLoop();
             } catch (err) {
-                alert("마이크 권한이 거부되었습니다.");
+                console.error(err);
+                alert("마이크 권한이 거부되었거나 지원되지 않는 환경입니다. (HTTPS 필요)");
+                isRunning = false;
             }
         });
 
-        function update() {
+        function updateLoop() {
             if (!isRunning) return;
 
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
 
+            // 주파수 검출
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
-            if (pitch !== -1) {
+            if (pitch !== -1 && pitch > 50 && pitch < 1200) { 
+                // 음 검출 성공 시
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
+                // 오차 계산 (Cents, -50 ~ +50)
                 const cents = Math.floor(1200 * Math.log(pitch / standardFreq) / Math.log(2));
 
-                noteEl.innerText = notes[noteNum % 12];
+                // UI 업데이트
+                const currentNote = noteStrings[noteNum % 12];
+                noteEl.innerText = currentNote;
                 freqEl.innerText = pitch.toFixed(2) + " Hz";
 
-                // [움직임 제어] 필터 없이 검출된 센트값을 즉각 반영 (예민한 모드)
-                // -50센트일 때 0%, 0센트일 때 50%, +50센트일 때 100% 위치로 이동
-                const position = 50 + (cents); // cents 범위가 보통 -50 ~ 50이므로
-                const limitedPos = Math.max(5, Math.min(95, position)); // 좌우 벽 뚫기 방지
-                
+                // 바늘 위치 계산 (5% ~ 95% 범위 내로 매핑)
+                // -50센트 -> 5%, 0센트 -> 50%, +50센트 -> 95%
+                const position = 50 + (cents * 0.9); 
+                const limitedPos = Math.max(5, Math.min(95, position));
                 needleEl.style.left = limitedPos + "%";
+
+                // [요청 4] 정튜닝 판단 및 효과 적용
+                // 오차가 ±3센트 이내면 정튜닝으로 간주
+                if (Math.abs(cents) <= 3) {
+                    noteEl.classList.add('tuned'); // 알파벳 네온 불빛 ON
+                    needleEl.classList.add('tuned'); // 바늘 초록색 ON
+                } else {
+                    noteEl.classList.remove('tuned'); // 불빛 OFF
+                    needleEl.classList.remove('tuned'); // 바늘 빨간색으로 복귀
+                }
+
+            } else {
+                // [요청 3] 소리가 입력되지 않거나 너무 작을 때
+                // 바늘을 가장 왼쪽(5%)으로 이동
+                needleEl.style.left = "5%";
+                needleEl.classList.remove('tuned');
+                // 음명 디스플레이는 마지막 상태 유지 또는 '--'로 초기화 (원하는 대로 변경 가능)
+                // noteEl.innerText = "--"; 
+                noteEl.classList.remove('tuned'); // 소리 없으면 불 끄기
             }
 
-            requestAnimationFrame(update);
+            requestAnimationFrame(updateLoop);
         }
 
-        // 주파수 검출 알고리즘 (Autocorrelation)
+        // 자기상관법 (Autocorrelation) 알고리즘 (이전과 동일)
         function getPitch(buf, sampleRate) {
             let size = buf.length;
             let rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            if (Math.sqrt(rms / size) < 0.01) return -1;
+            if (Math.sqrt(rms / size) < 0.01) return -1; // 소리가 너무 작으면 분석 안 함
 
             let c = new Array(size).fill(0);
             for (let i = 0; i < size; i++)
@@ -216,7 +328,8 @@
                     maxpos = i;
                 }
             }
-            return sampleRate / maxpos;
+            if (maxpos !== -1) return sampleRate / maxpos;
+            return -1;
         }
     </script>
 </body>
