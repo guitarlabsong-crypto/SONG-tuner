@@ -3,39 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SYM Guitar Tuner v16</title>
+    <title>SYM Guitar Tuner v17</title>
     <style>
-        /* [1] 레이아웃: 위아래 간격을 넓히고 중앙 집중 해제 */
+        /* [1] 레이아웃: 여유 있는 상하 간격 유지 */
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: space-between; /* 상하 끝으로 배치 */
-            height: 100dvh; margin: 0; 
-            padding: 40px 20px; /* 상하 패딩을 늘려 여백 확보 */
+            justify-content: space-between; 
+            height: 100dvh; margin: 0; padding: 50px 20px;
             font-family: 'Segoe UI', sans-serif; box-sizing: border-box; 
             user-select: none; overflow: hidden;
         }
 
-        .top-display { text-align: center; margin-top: 20px; }
+        .top-display { text-align: center; }
         .note-alpha {
-            font-size: 7rem; font-weight: 900; color: #7f8c8d; line-height: 1;
-            transition: color 0.15s, text-shadow 0.15s;
+            font-size: 7.5rem; font-weight: 900; color: #7f8c8d; line-height: 1;
         }
         .note-alpha.tuned {
             color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71;
         }
         .freq-display { 
-            font-size: 1.8rem; color: #636e72; font-family: monospace; font-weight: bold; margin-top: 10px;
+            font-size: 1.8rem; color: #636e72; font-family: monospace; font-weight: bold; margin-top: 15px;
         }
 
-        /* [2] 중앙 유리관: 시각적 가독성 높임 */
+        /* [2] 유리관 및 바늘 */
         .glass-rect-container {
             position: relative; width: 100%; max-width: 500px; height: 160px;
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(0, 0, 0, 0.1);
             border-radius: 20px;
-            box-shadow: inset 0 5px 20px rgba(255, 255, 255, 0.4), 0 10px 20px rgba(0, 0, 0, 0.05);
+            box-shadow: inset 0 5px 20px rgba(255, 255, 255, 0.4);
             display: flex; align-items: center; overflow: hidden;
-            margin: 20px 0;
         }
 
         .needle {
@@ -50,8 +47,7 @@
             display: flex; justify-content: space-between; align-items: center;
             z-index: 1; opacity: 0.25;
         }
-        .tick { width: 1px; height: 12px; background: #000; }
-        .tick.major { height: 35px; width: 2px; position: relative; }
+        .tick.major { height: 35px; width: 2px; position: relative; background: #000; }
         .tick-label {
             position: absolute; bottom: -25px; left: 50%;
             transform: translateX(-50%); font-size: 0.8rem; font-weight: bold;
@@ -61,16 +57,14 @@
             background: rgba(255, 255, 255, 0.7); left: 50%; transform: translateX(-50%); z-index: 2;
         }
 
-        /* [3] 하단 버튼부: 여백 확보 */
+        /* [3] 하단 버튼부 */
         .bottom-area {
-            width: 100%; display: flex; flex-direction: column; align-items: center; 
-            gap: 25px; margin-bottom: 30px;
+            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 30px;
         }
         .tuner-btn {
-            padding: 18px 60px; font-size: 1.3rem; font-weight: bold;
+            padding: 20px 70px; font-size: 1.4rem; font-weight: bold;
             background: #34495e; border: none; color: white; border-radius: 50px; 
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .tuner-btn.running { background: #c0392b; }
         .lab-watermark {
@@ -129,31 +123,37 @@
         async function startTuner() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             
-            // iOS 최적화: 버퍼 크기를 줄여 응답성 극대화
-            audioContext = new AudioCtx({ latencyHint: 'interactive' });
+            // [iOS 핵심 수정 1] 아이폰 하드웨어 기본 샘플레이트(48k)로 맞춤 (업샘플링 지연 방지)
+            audioContext = new AudioCtx({ 
+                latencyHint: 'interactive',
+                sampleRate: 48000 
+            });
+
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048; 
-            // SmoothingTimeConstant를 낮춰 실시간성 강화
-            analyser.smoothingTimeConstant = 0.1;
+            // [iOS 핵심 수정 2] 버퍼 크기를 4096으로 늘려 서스테인(지속음) 분석 데이터량 확보
+            analyser.fftSize = 4096; 
+            analyser.smoothingTimeConstant = 0.05; // 응답성 최대로
 
             try {
-                const constraints = {
+                // [iOS 핵심 수정 3] 모든 지능형 오디오 처리 강제 비활성화
+                const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        echoCancellation: false,
-                        noiseSuppression: false,
-                        autoGainControl: false
+                        echoCancellation: { exact: false },
+                        noiseSuppression: { exact: false },
+                        autoGainControl: { exact: false }
                     }
-                };
+                });
 
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 if (audioContext.state === 'suspended') { await audioContext.resume(); }
 
-                audioContext.createMediaStreamSource(stream).connect(analyser);
+                const source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+                
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
                 startBtn.classList.add('running');
                 updateLoop();
-            } catch (err) { alert("마이크 접근을 허용해 주세요."); }
+            } catch (err) { alert("마이크 접근 권한이 필요합니다."); }
         }
 
         function stopTuner() {
@@ -167,7 +167,6 @@
             needleEl.style.borderColor = "#ff9f43";
         }
 
-        // 바늘 색상 계산 (v13 로직 유지)
         function updateNeedleColor(pos, isTuned) {
             if (isTuned) {
                 needleEl.style.borderColor = "#2ecc71";
@@ -184,10 +183,10 @@
 
         function updateLoop() {
             if (!isRunning) return;
+            // [iOS 핵심 수정 4] 0.01초 단위로 데이터를 강제 갱신하도록 분석 주기 최적화
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
             
-            // 피치 추출 속도 개선을 위한 로직
             const pitch = getPitch(buffer, audioContext.sampleRate);
             let isTunedThisFrame = false;
 
@@ -196,10 +195,10 @@
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
-                // iOS 둔화 방지: 필터링 계수 최적화 (0.93 -> 0.88로 반응 속도 상향)
-                let followSpeed = pitch >= 200 ? 0.07 : 0.18;
-                let frictionValue = pitch >= 200 ? 0.75 : 0.85;
-                smoothedCents = pitch >= 200 ? (smoothedCents * 0.88) + (rawCents * 0.12) : (smoothedCents * 0.5) + (rawCents * 0.5);
+                // 고음역대 튜닝 유지 로직 강화
+                let followSpeed = pitch >= 200 ? 0.08 : 0.2;
+                let frictionValue = pitch >= 200 ? 0.8 : 0.85;
+                smoothedCents = (smoothedCents * 0.8) + (rawCents * 0.2);
 
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = Math.round(pitch) + " Hz";
@@ -209,14 +208,15 @@
                 velocity += (targetPos - currentPos) * followSpeed;
                 velocity *= frictionValue; 
 
-                // 1Hz 오차 판정 (너그러운 판정 유지)
-                if (Math.abs(pitch - standardFreq) <= 1.1) {
+                if (Math.abs(pitch - standardFreq) <= 1.2) {
                     isTunedThisFrame = true;
                     noteEl.classList.add('tuned');
                     playNoteBeep(standardFreq);
                 } else { noteEl.classList.remove('tuned'); }
             } else {
-                velocity += (5 - currentPos) * 0.03; velocity -= gravity * 0.1; velocity *= 0.8;
+                // 소리가 끊겼을 때 바늘이 툭 떨어지는 속도를 늦춰 서스테인 느낌 유지
+                velocity += (currentPos > 50 ? 5 - currentPos : 5 - currentPos) * 0.01; 
+                velocity *= 0.95;
                 noteEl.classList.remove('tuned');
             }
 
@@ -232,21 +232,23 @@
             lastBeepTime = now;
             const osc = audioContext.createOscillator(), gain = audioContext.createGain();
             osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioContext.currentTime);
-            gain.gain.setValueAtTime(0.03, audioContext.currentTime);
+            gain.gain.setValueAtTime(0.02, audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
             osc.connect(gain); gain.connect(audioContext.destination);
             osc.start(); osc.stop(audioContext.currentTime + 0.1);
         }
 
         /**
-         * iOS 성능 저하 방지를 위해 연산량을 줄인 고속 Autocorrelation 알고리즘
+         * 연산 정밀도와 속도를 높인 고주파 추적 알고리즘
          */
         function getPitch(buf, sampleRate) {
             let size = buf.length, rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            if (Math.sqrt(rms / size) < 0.008) return -1;
+            
+            // [iOS 핵심 수정 5] 서스테인 인식을 위해 감도(RMS) 문턱값을 대폭 낮춤
+            if (Math.sqrt(rms / size) < 0.003) return -1;
 
-            let c = new Float32Array(size); // Array 대신 Float32Array 사용하여 연산 속도 향상
+            let c = new Float32Array(size);
             for (let i = 0; i < size; i++) {
                 for (let j = 0; j < size - i; j++) {
                     c[i] = c[i] + buf[j] * buf[j + i];
