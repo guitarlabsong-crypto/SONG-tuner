@@ -3,158 +3,141 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner v4</title>
+    <title>SYM Guitar Tuner v5 - Precision</title>
     <style>
-        /* [요청 2] 전체 배경 회색 및 중앙 정렬 */
+        /* 전체 배경 및 레이아웃 설정 */
         body { 
-            background: #cbd3da; 
+            background: #cbd3da; /* 회색 배경 */
             color: #333; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            justify-content: space-between; /* 상, 중, 하 배치를 위해 변경 */
+            justify-content: space-between; 
             height: 100vh; 
             margin: 0; 
-            padding: 40px 0; /* 상하 여백 */
+            padding: 20px 0; 
             font-family: 'Segoe UI', sans-serif;
             box-sizing: border-box;
         }
 
-        /* [요청 3] 음정 및 Hz를 화면 상단으로 배치 */
-        .top-display {
-            text-align: center;
-            flex-shrink: 0;
-        }
-
+        /* [상단] 음명 및 Hz 표시부 */
+        .top-display { text-align: center; margin-top: 10px; }
         .note-alpha {
-            font-size: 6rem;
+            font-size: 6.5rem; /* 음명 크기 확대 */
             font-weight: 900;
             color: #7f8c8d;
             line-height: 1;
-            transition: all 0.2s ease;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.15s ease;
         }
-
-        /* 정튜닝 네온 효과 */
+        /* 정튜닝 시 네온 효과 */
         .note-alpha.tuned {
             color: #fff;
-            text-shadow: 0 0 10px #2ecc71, 0 0 30px #2ecc71, 0 0 50px #2ecc71;
+            text-shadow: 0 0 15px #2ecc71, 0 0 40px #2ecc71;
         }
+        .freq-display { font-size: 1.5rem; color: #636e72; font-family: monospace; margin-top: 5px; }
 
-        .freq-display {
-            font-size: 1.4rem;
-            color: #636e72;
-            margin-top: 10px;
-            font-family: monospace;
-        }
-
-        /* [요청 1 & 2] 직사각형 유리관 및 세로 폭 확대 */
+        /* [중앙] 직사각형 유리관 */
         .glass-rect-container {
             position: relative;
-            width: 90%;
-            max-width: 500px;
-            height: 160px; /* 세로 폭 확대 */
-            background: rgba(255, 255, 255, 0.2);
+            width: 92%;
+            max-width: 550px;
+            height: 180px; /* 폭을 조금 더 확대 */
+            background: rgba(255, 255, 255, 0.25);
             border: 3px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px; /* 직사각형 형태 유지 (약간의 곡률만 부여) */
-            
-            /* 유리 질감: 입체적인 내부 그림자와 광택 */
+            border-radius: 10px;
             box-shadow: 
-                inset 0 10px 20px rgba(255, 255, 255, 0.5),
+                inset 0 15px 25px rgba(255, 255, 255, 0.5),
                 inset 0 -10px 20px rgba(0, 0, 0, 0.05),
-                0 10px 30px rgba(0, 0, 0, 0.1);
-            
+                0 15px 35px rgba(0, 0, 0, 0.15);
             display: flex;
             align-items: center;
             overflow: hidden;
-            z-index: 5;
         }
 
-        /* 유리관 반사광 효과 */
-        .glass-rect-container::after {
-            content: '';
+        /* [눈금계] -50 ~ 0 ~ +50 정밀 눈금 */
+        .ticks-container {
             position: absolute;
-            top: 0; left: 0; right: 0; height: 50%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.4) 0%, transparent 100%);
-            pointer-events: none;
-        }
-
-        /* [요청 5] 연속 체크 바늘 (예민한 반응형) */
-        .needle {
-            position: absolute;
-            width: 4px;
-            height: 100%; /* 위아래 꽉 차는 바늘 */
-            background: #e74c3c;
-            left: 5%; /* 기본 위치: 왼쪽 끝 */
-            transform: translateX(-50%);
-            /* 연속 측정을 위해 transition을 제거하거나 매우 짧게 설정 */
-            transition: left 0.03s linear, background 0.2s; 
-            z-index: 10;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-        }
-
-        .needle.tuned {
-            background: #2ecc71;
-            box-shadow: 0 0 15px #2ecc71;
-        }
-
-        /* 중앙 가이드 라인 */
-        .center-line {
-            position: absolute;
-            width: 2px;
-            height: 100%;
-            background: rgba(46, 204, 113, 0.4);
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 1;
-        }
-
-        /* 배경 눈금 */
-        .ticks {
-            position: absolute;
-            width: 90%;
+            width: 90%; /* 양쪽 끝 5%씩 여백 */
             left: 5%;
             height: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            opacity: 0.2;
+            z-index: 1;
         }
-        .tick { width: 1px; height: 20px; background: #000; }
-        .tick.main { height: 50px; width: 3px; }
+        .tick { 
+            width: 1px; 
+            height: 15px; 
+            background: rgba(0,0,0,0.2); 
+            position: relative;
+        }
+        /* 큰 눈금 (10단위) */
+        .tick.major { height: 40px; width: 2px; background: rgba(0,0,0,0.4); }
+        /* 눈금 숫자 라벨 */
+        .tick-label {
+            position: absolute;
+            bottom: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: #555;
+            font-weight: bold;
+        }
 
-        /* [요청 4] 하단 버튼 */
+        /* [바늘] 예민한 반응형 시침 */
+        .needle {
+            position: absolute;
+            width: 4px;
+            height: 100%;
+            background: #e74c3c; /* 평상시 빨간색 */
+            left: 5%; /* 기본 위치 (가장 왼쪽) */
+            transform: translateX(-50%);
+            transition: left 0.03s linear, background 0.2s; 
+            z-index: 10;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+        }
+        .needle.tuned { background: #2ecc71; box-shadow: 0 0 15px #2ecc71; }
+
+        /* 중앙 가이드 라인 (0점) */
+        .center-guide {
+            position: absolute;
+            width: 2px;
+            height: 100%;
+            background: rgba(46, 204, 113, 0.5);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+        }
+
+        /* [하단] 컨트롤 영역 */
         .bottom-area {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
-            flex-shrink: 0;
+            gap: 15px;
+            margin-bottom: 10px;
         }
-
         .tuner-btn {
-            padding: 20px 60px;
-            font-size: 1.3rem;
+            padding: 20px 70px;
+            font-size: 1.4rem;
             font-weight: bold;
             background: #2d3436;
             border: none;
             color: white;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+            transition: transform 0.1s;
         }
-
+        .tuner-btn:active { transform: scale(0.96); }
         .tuner-btn.running { background: #d63031; }
 
-        /* 워터마크 주황색 */
         .lab-watermark {
             color: #ff9f43;
             font-weight: bold;
+            letter-spacing: 1.5px;
             font-size: 0.95rem;
-            letter-spacing: 1px;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -166,12 +149,8 @@
     </div>
 
     <div class="glass-rect-container">
-        <div class="ticks">
-            <div class="tick main"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
-            <div class="tick main"></div>
-            <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick main"></div>
-        </div>
-        <div class="center-line"></div>
+        <div id="ticksContainer" class="ticks-container"></div>
+        <div class="center-guide"></div>
         <div id="needle" class="needle"></div>
     </div>
 
@@ -181,18 +160,42 @@
     </div>
 
     <script>
+        /* [환경 변수] */
         let audioContext;
         let analyser;
         let isRunning = false;
         let animationId;
+        let lastBeepTime = 0; // 마지막 비프음 발생 시간 (연속 방지용)
 
         const needleEl = document.getElementById('needle');
         const noteEl = document.getElementById('noteDisplay');
         const freqEl = document.getElementById('freqDisplay');
         const startBtn = document.getElementById('startBtn');
+        const ticksContainer = document.getElementById('ticksContainer');
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
+        /* [초기화] 눈금계 생성 로직 (-50 ~ +50) */
+        function initTicks() {
+            // 총 101개의 눈금 생성 (0 포함, 2배로 조밀하게)
+            for (let i = -50; i <= 50; i++) {
+                const tick = document.createElement('div');
+                tick.className = 'tick';
+                
+                // 10단위마다 큰 눈금 및 숫자 표시
+                if (i % 10 === 0) {
+                    tick.classList.add('major');
+                    const label = document.createElement('div');
+                    label.className = 'tick-label';
+                    label.innerText = i === 0 ? "0" : (i > 0 ? "+" + i : i);
+                    tick.appendChild(label);
+                }
+                ticksContainer.appendChild(tick);
+            }
+        }
+        initTicks();
+
+        /* [이벤트] 시작 버튼 클릭 */
         startBtn.addEventListener('click', async () => {
             if (isRunning) {
                 stopTuner();
@@ -201,19 +204,16 @@
             startTuner();
         });
 
+        /* [기능] 튜너 시작 */
         async function startTuner() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioContext = new AudioContext();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 4096; // 연속적이고 정밀한 체크를 위해 해상도 높임
+            analyser.fftSize = 4096; // 고해상도 분석
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: {
-                        echoCancellation: false, // 기타 생음을 위해 에코 캔슬링 끔
-                        noiseSuppression: false, // 노이즈 억제 끔 (악기음 보존)
-                        autoGainControl: false   // 자동 볼륨 조절 끔
-                    } 
+                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
                 });
                 audioContext.createMediaStreamSource(stream).connect(analyser);
                 isRunning = true;
@@ -221,64 +221,111 @@
                 startBtn.classList.add('running');
                 updateLoop();
             } catch (err) {
-                alert("마이크 접근이 필요합니다.");
+                alert("마이크 접근 권한이 필요합니다.");
             }
         }
 
+        /* [기능] 튜너 중지 */
         function stopTuner() {
             cancelAnimationFrame(animationId);
             if (audioContext) audioContext.close();
             isRunning = false;
             startBtn.innerText = "튜너 시작";
             startBtn.classList.remove('running');
+            resetUI();
+        }
+
+        /* [기능] UI 초기화 */
+        function resetUI() {
             noteEl.innerText = "--";
             noteEl.classList.remove('tuned');
             freqEl.innerText = "0.00 Hz";
-            needleEl.style.left = "5%";
+            needleEl.style.left = "5%"; // 무입력 시 왼쪽 이동
             needleEl.classList.remove('tuned');
         }
 
+        /* [핵심] 실시간 루프 */
         function updateLoop() {
             if (!isRunning) return;
 
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
 
-            // [요청 5] 연속 체크 로직
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
-            if (pitch !== -1 && pitch > 60 && pitch < 1000) { 
+            if (pitch !== -1 && pitch > 60 && pitch < 1200) {
+                // MIDI 노트 번호 계산
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
+                
+                // 오차 계산 (Cents)
                 const cents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = pitch.toFixed(2) + " Hz";
 
-                // 바늘 위치 계산 (5% ~ 95% 사이)
-                const position = 50 + (cents * 0.9);
+                // 바늘 위치 매핑: 눈금 범위 5% ~ 95% 사이
+                // cents 범위 -50 ~ +50을 0 ~ 100% 비율로 환산
+                const position = 50 + (cents * 0.9); 
                 const limitedPos = Math.max(5, Math.min(95, position));
                 needleEl.style.left = limitedPos + "%";
 
-                // 정튜닝 효과 (±3센트)
-                if (Math.abs(cents) <= 3) {
+                /* [요청] 정튜닝 판단 (오차 ±2.5센트 이내) */
+                if (Math.abs(cents) <= 2.5) {
                     noteEl.classList.add('tuned');
                     needleEl.classList.add('tuned');
+                    playBeepSound(); // 효과음 재생
                 } else {
                     noteEl.classList.remove('tuned');
                     needleEl.classList.remove('tuned');
                 }
             } else {
-                // [요청 3] 입력이 없으면 바늘을 왼쪽 끝(5%)으로
-                needleEl.style.left = "5%";
-                needleEl.classList.remove('tuned');
-                noteEl.classList.remove('tuned');
+                resetUI();
             }
 
             animationId = requestAnimationFrame(updateLoop);
         }
 
-        // Pitch Detection (Autocorrelation)
+        /* [사운드] 뚜뚜 효과음 발생 함수 */
+        function playBeepSound() {
+            const now = Date.now();
+            // 너무 자주 울리지 않도록 0.5초 간격 제한
+            if (now - lastBeepTime < 500) return; 
+
+            lastBeepTime = now;
+            
+            // Web Audio API를 이용한 즉석 비프음 생성
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, audioContext.currentTime); // 높은 '라' 음 (A5)
+            
+            gain.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.1);
+
+            osc.connect(gain);
+            gain.connect(audioContext.destination);
+
+            osc.start();
+            osc.stop(audioContext.currentTime + 0.1);
+
+            // '뚜뚜' 느낌을 위해 0.15초 뒤에 한 번 더 재생
+            setTimeout(() => {
+                const osc2 = audioContext.createOscillator();
+                const gain2 = audioContext.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(880, audioContext.currentTime);
+                gain2.gain.setValueAtTime(0.1, audioContext.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.1);
+                osc2.connect(gain2);
+                gain2.connect(audioContext.destination);
+                osc2.start();
+                osc2.stop(audioContext.currentTime + 0.1);
+            }, 150);
+        }
+
+        /* [알고리즘] Pitch Detection (Autocorrelation) */
         function getPitch(buf, sampleRate) {
             let size = buf.length;
             let rms = 0;
@@ -293,10 +340,7 @@
             let d = 0; while (c[d] > c[d + 1]) d++;
             let maxval = -1, maxpos = -1;
             for (let i = d; i < size; i++) {
-                if (c[i] > maxval) {
-                    maxval = c[i];
-                    maxpos = i;
-                }
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
             }
             if (maxpos !== -1) return sampleRate / maxpos;
             return -1;
