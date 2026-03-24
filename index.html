@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SYM Guitar Tuner v17</title>
+    <title>SYM Guitar Tuner v18</title>
     <style>
-        /* [1] 레이아웃: 여유 있는 상하 간격 유지 */
+        /* 레이아웃: 위아래 간격을 충분히 확보하여 시원한 느낌 유지 */
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
             justify-content: space-between; 
-            height: 100dvh; margin: 0; padding: 50px 20px;
+            height: 100dvh; margin: 0; padding: 60px 20px;
             font-family: 'Segoe UI', sans-serif; box-sizing: border-box; 
             user-select: none; overflow: hidden;
         }
@@ -26,7 +26,7 @@
             font-size: 1.8rem; color: #636e72; font-family: monospace; font-weight: bold; margin-top: 15px;
         }
 
-        /* [2] 유리관 및 바늘 */
+        /* 유리관 및 바늘 */
         .glass-rect-container {
             position: relative; width: 100%; max-width: 500px; height: 160px;
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(0, 0, 0, 0.1);
@@ -42,33 +42,31 @@
             box-sizing: border-box;
         }
 
-        .ticks-container {
-            position: absolute; width: 90%; left: 5%; height: 100%;
-            display: flex; justify-content: space-between; align-items: center;
-            z-index: 1; opacity: 0.25;
-        }
-        .tick.major { height: 35px; width: 2px; position: relative; background: #000; }
-        .tick-label {
-            position: absolute; bottom: -25px; left: 50%;
-            transform: translateX(-50%); font-size: 0.8rem; font-weight: bold;
-        }
-        .center-guide {
-            position: absolute; width: 2px; height: 100%;
-            background: rgba(255, 255, 255, 0.7); left: 50%; transform: translateX(-50%); z-index: 2;
-        }
-
-        /* [3] 하단 버튼부 */
+        /* 하단 영역 */
         .bottom-area {
-            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 30px;
+            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 40px;
         }
         .tuner-btn {
-            padding: 20px 70px; font-size: 1.4rem; font-weight: bold;
+            padding: 20px 80px; font-size: 1.5rem; font-weight: bold;
             background: #34495e; border: none; color: white; border-radius: 50px; 
             cursor: pointer; -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
         }
         .tuner-btn.running { background: #c0392b; }
         .lab-watermark {
-            color: #7f8c8d; font-weight: bold; font-size: 0.9rem; letter-spacing: 1.5px;
+            color: #7f8c8d; font-weight: bold; font-size: 0.9rem; letter-spacing: 2px;
+        }
+
+        /* 눈금 레이아웃 */
+        .ticks-container {
+            position: absolute; width: 90%; left: 5%; height: 100%;
+            display: flex; justify-content: space-between; align-items: center;
+            z-index: 1; opacity: 0.3;
+        }
+        .tick.major { height: 40px; width: 2px; background: #000; position: relative; }
+        .tick-label {
+            position: absolute; bottom: -28px; left: 50%;
+            transform: translateX(-50%); font-size: 0.85rem; font-weight: bold;
         }
     </style>
 </head>
@@ -81,7 +79,6 @@
 
     <div class="glass-rect-container">
         <div id="ticksContainer" class="ticks-container"></div>
-        <div class="center-guide"></div>
         <div id="needle" class="needle"></div>
     </div>
 
@@ -94,13 +91,14 @@
         let audioContext, analyser, animationId;
         let isRunning = false;
         let lastBeepTime = 0;
+        
+        // [민감도 조정] 바늘의 움직임을 더 민첩하게 만들기 위한 변수
         let currentPos = 5, velocity = 0, smoothedCents = 0;
-        const gravity = 0.5;
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
         const needleEl = document.getElementById('needle'), noteEl = document.getElementById('noteDisplay');
         const freqEl = document.getElementById('freqDisplay'), startBtn = document.getElementById('startBtn');
         const ticksContainer = document.getElementById('ticksContainer');
-        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
         function initTicks() {
             for (let i = -50; i <= 50; i += 10) {
@@ -115,46 +113,46 @@
         }
         initTicks();
 
+        // [iOS 권한 해결] 버튼 클릭 이벤트 내부에서 모든 오디오 초기화 진행
         startBtn.addEventListener('click', async () => {
             if (isRunning) { stopTuner(); return; }
-            startTuner();
-        });
-
-        async function startTuner() {
-            const AudioCtx = window.AudioContext || window.webkitAudioContext;
             
-            // [iOS 핵심 수정 1] 아이폰 하드웨어 기본 샘플레이트(48k)로 맞춤 (업샘플링 지연 방지)
-            audioContext = new AudioCtx({ 
-                latencyHint: 'interactive',
-                sampleRate: 48000 
-            });
-
-            analyser = audioContext.createAnalyser();
-            // [iOS 핵심 수정 2] 버퍼 크기를 4096으로 늘려 서스테인(지속음) 분석 데이터량 확보
-            analyser.fftSize = 4096; 
-            analyser.smoothingTimeConstant = 0.05; // 응답성 최대로
-
             try {
-                // [iOS 핵심 수정 3] 모든 지능형 오디오 처리 강제 비활성화
+                // 1. 오디오 컨텍스트 생성 (iOS 하드웨어 샘플레이트 48kHz 대응)
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                audioContext = new AudioCtx({ latencyHint: 'interactive', sampleRate: 48000 });
+
+                // 2. 마이크 권한 요청 및 스트림 획득
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: {
-                        echoCancellation: { exact: false },
-                        noiseSuppression: { exact: false },
-                        autoGainControl: { exact: false }
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
                     }
                 });
 
-                if (audioContext.state === 'suspended') { await audioContext.resume(); }
+                // 3. iOS 특화: 정지된 오디오 컨텍스트 강제 재개
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                // 4. 분석기 설정 (서스테인 인식을 위해 fftSize 유지)
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 4096;
+                analyser.smoothingTimeConstant = 0.03; // 반응성 최대로 상향
 
                 const source = audioContext.createMediaStreamSource(stream);
                 source.connect(analyser);
-                
+
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
                 startBtn.classList.add('running');
                 updateLoop();
-            } catch (err) { alert("마이크 접근 권한이 필요합니다."); }
-        }
+            } catch (err) {
+                console.error("Audio Error:", err);
+                alert("마이크 접근이 거절되었습니다. 설정에서 사파리 마이크 권한을 확인해주세요.");
+            }
+        });
 
         function stopTuner() {
             cancelAnimationFrame(animationId);
@@ -164,9 +162,9 @@
             startBtn.classList.remove('running');
             noteEl.innerText = "--"; freqEl.innerText = "0 Hz";
             noteEl.classList.remove('tuned');
-            needleEl.style.borderColor = "#ff9f43";
         }
 
+        // 바늘 색상 업데이트 함수
         function updateNeedleColor(pos, isTuned) {
             if (isTuned) {
                 needleEl.style.borderColor = "#2ecc71";
@@ -183,7 +181,6 @@
 
         function updateLoop() {
             if (!isRunning) return;
-            // [iOS 핵심 수정 4] 0.01초 단위로 데이터를 강제 갱신하도록 분석 주기 최적화
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
             
@@ -195,28 +192,31 @@
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
-                // 고음역대 튜닝 유지 로직 강화
-                let followSpeed = pitch >= 200 ? 0.08 : 0.2;
-                let frictionValue = pitch >= 200 ? 0.8 : 0.85;
-                smoothedCents = (smoothedCents * 0.8) + (rawCents * 0.2);
+                // [민감도 상향] followSpeed와 필터 계수를 조정하여 바늘이 더 즉각적으로 반응하게 함
+                let followSpeed = pitch >= 200 ? 0.12 : 0.25; 
+                let frictionValue = 0.9; // 마찰력을 줄여 바늘이 더 가볍게 움직임
+                smoothedCents = (smoothedCents * 0.75) + (rawCents * 0.25); // 필터 비중 하향 (더 실시간적)
 
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = Math.round(pitch) + " Hz";
 
                 let targetPos = 50 + (smoothedCents * 0.9);
                 targetPos = Math.max(5, Math.min(95, targetPos));
+                
+                // 물리 엔진 가속도 계산
                 velocity += (targetPos - currentPos) * followSpeed;
                 velocity *= frictionValue; 
 
+                // 1Hz 오차 판정
                 if (Math.abs(pitch - standardFreq) <= 1.2) {
                     isTunedThisFrame = true;
                     noteEl.classList.add('tuned');
                     playNoteBeep(standardFreq);
                 } else { noteEl.classList.remove('tuned'); }
             } else {
-                // 소리가 끊겼을 때 바늘이 툭 떨어지는 속도를 늦춰 서스테인 느낌 유지
-                velocity += (currentPos > 50 ? 5 - currentPos : 5 - currentPos) * 0.01; 
-                velocity *= 0.95;
+                // 무음 시 바늘 복귀 속도 조절
+                velocity += (5 - currentPos) * 0.05;
+                velocity *= 0.85;
                 noteEl.classList.remove('tuned');
             }
 
@@ -227,6 +227,7 @@
             animationId = requestAnimationFrame(updateLoop);
         }
 
+        // 정튜닝 성공 알림음
         function playNoteBeep(freq) {
             const now = Date.now(); if (now - lastBeepTime < 1000) return;
             lastBeepTime = now;
@@ -238,15 +239,13 @@
             osc.start(); osc.stop(audioContext.currentTime + 0.1);
         }
 
-        /**
-         * 연산 정밀도와 속도를 높인 고주파 추적 알고리즘
-         */
+        // [정밀 추출 알고리즘] 서스테인 인식을 위해 RMS 감도 대폭 하향
         function getPitch(buf, sampleRate) {
             let size = buf.length, rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
             
-            // [iOS 핵심 수정 5] 서스테인 인식을 위해 감도(RMS) 문턱값을 대폭 낮춤
-            if (Math.sqrt(rms / size) < 0.003) return -1;
+            // 0.002까지 감도를 낮춰 아주 작은 울림도 잡아냄
+            if (Math.sqrt(rms / size) < 0.002) return -1;
 
             let c = new Float32Array(size);
             for (let i = 0; i < size; i++) {
