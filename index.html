@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner (Glass Tube Mode)</title>
+    <title>SYM Guitar Tuner (Sensitive Mode)</title>
     <style>
-        /* 기본 스타일 초기화 및 배경 설정 */
         body { 
-            background: #121212; /* 더 짙은 검은색 배경 */
+            background: #0f0f0f; 
             color: white; 
             display: flex; 
             flex-direction: column; 
@@ -15,332 +14,209 @@
             justify-content: center; 
             min-height: 100vh; 
             margin: 0; 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden; /* 스크롤 방지 */
+            font-family: sans-serif;
         }
 
-        /* [요청사항] 가로로 긴 박스형 투명 유리관 튜너 */
-        .tuner-glass-tube {
+        /* [디자인] 가로로 긴 유리관 박스 */
+        .glass-container {
             position: relative;
-            width: 90%; /* 화면 너비의 90% */
-            max-width: 500px; /* 최대 너비 제한 */
-            height: 100px; /* 높이는 낮춤 */
-            border: 2px solid rgba(255, 255, 255, 0.2); /* 얇은 유리 테두리 */
-            background: rgba(255, 255, 255, 0.05); /* 아주 옅은 반투명 배경 */
-            border-radius: 10px; /* 살짝 둥근 모서리 */
-            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(255, 255, 255, 0.1); /* 외부 및 내부 그림자 */
-            overflow: hidden;
-            margin-bottom: 20px;
+            width: 85%;
+            max-width: 450px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.05);
             display: flex;
-            align-items: flex-end; /* 바늘을 아래쪽에 배치 */
+            align-items: center;
             justify-content: center;
+            overflow: hidden;
+            margin-bottom: 25px;
         }
 
-        /* 유리관 하이라이트 효과 */
-        .tuner-glass-tube::after {
+        /* 유리 질감 하이라이트 */
+        .glass-container::before {
             content: '';
             position: absolute;
-            top: 5px;
-            left: 5px;
-            right: 5px;
-            height: 20%;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
-            border-radius: 5px;
+            top: 0; left: 0; right: 0; height: 40%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, transparent 100%);
             pointer-events: none;
         }
 
-        /* [요청사항] 부드러운 바늘 */
+        /* [바늘] 좌우로 예민하게 움직이는 바늘 */
         .needle {
             position: absolute;
-            bottom: 0px; /* 유리관 바닥에 고정 */
-            left: 50%;
             width: 3px;
-            height: 90px; /* 바늘 길이 */
-            background: #e74c3c; /* 빨간색 바늘 */
-            transform-origin: bottom center; /* 아래쪽 중앙을 기준으로 회전 */
-            transform: translateX(-50%) rotate(0deg); /* 초기 상태: 정중앙 */
-            /* CSS transition은 제거하고 JS에서 부드럽게 처리합니다 */
+            height: 80%;
+            background: #ff4757; /* 붉은색 바늘 */
+            left: 50%;
+            /* transform: translateX(-50%)를 유지하며 좌우로 이동 */
+            transform: translateX(-50%);
+            /* 예민한 반응을 위해 transition 시간을 매우 짧게 설정 */
+            transition: left 0.02s linear; 
             z-index: 10;
-            border-radius: 2px;
-            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5); /* 바늘 주위 미세한 발광 */
+            box-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
         }
 
-        /* 중앙 가이드 라인 (정튜닝) */
-        .center-guide {
+        /* 중앙 정튜닝 가이드 라인 */
+        .center-line {
             position: absolute;
-            top: 0;
-            left: 50%;
             width: 2px;
             height: 100%;
-            background: rgba(46, 204, 113, 0.6); /* 초록색 */
+            background: #2ecc71;
+            left: 50%;
             transform: translateX(-50%);
-            z-index: 5;
+            opacity: 0.5;
         }
 
-        /* 눈금 스타일 */
-        .gauge-lines {
+        /* 눈금 표시 */
+        .ticks {
             position: absolute;
             width: 100%;
             height: 100%;
-            top: 0;
-            left: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 10px;
+            box-sizing: border-box;
             pointer-events: none;
         }
-        .line {
-            position: absolute;
-            bottom: 0px; /* 유리관 아래쪽에 눈금 배치 */
-            left: 50%;
-            width: 1px;
-            background: rgba(255,255,255,0.2);
-            transform-origin: bottom center;
-        }
-        /* 큰 눈금 (-50, 0, +50센트) */
-        .line.big { height: 25px; width: 2px; background: rgba(255,255,255,0.5); }
-        /* 작은 눈금 (10센트 단위) */
-        .line.small { height: 12px; }
+        .tick { width: 1px; height: 15px; background: rgba(255,255,255,0.2); }
+        .tick.main { height: 30px; background: rgba(255,255,255,0.5); }
 
-        /* 눈금 라벨 (숫자) */
-        .gauge-label {
-            position: absolute;
-            bottom: 30px; /* 눈금 위쪽에 표시 */
-            color: rgba(255,255,255,0.4);
-            font-size: 0.7rem;
-            transform: translateX(-50%);
-        }
+        /* 음명 및 정보 표시 */
+        .display { text-align: center; margin-bottom: 40px; }
+        .note { font-size: 4.5rem; font-weight: 900; color: #2ecc71; line-height: 1; }
+        .freq { font-size: 1.1rem; color: #888; margin-top: 10px; }
 
-        /* 정보 표시 영역 */
-        .info-display { text-align: center; margin-bottom: 30px; }
-        .note-name { font-size: 4rem; font-weight: bold; color: #2ecc71; text-shadow: 0 0 10px rgba(46,204,113,0.5); }
-        .frequency-val { font-size: 1.2rem; color: #bdc3c7; letter-spacing: 1px; }
-
-        /* 시작 버튼 스타일 */
-        .start-btn {
-            padding: 15px 40px;
-            font-size: 1.2rem;
+        /* 버튼 */
+        .btn {
+            padding: 16px 45px;
+            font-size: 1.1rem;
             font-weight: bold;
-            cursor: pointer;
             background: #2ecc71;
             border: none;
             color: white;
-            border-radius: 50px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: background 0.2s;
-            -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
-            margin-bottom: 50px; /* 워터마크와 겹치지 않게 여백 추가 */
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-        .start-btn:active { background: #27ae60; transform: scale(0.98); }
 
-        /* 워터마크 스타일 (주황색, 고정) */
+        /* [요청사항] 워터마크 주황색 */
         .watermark {
             position: fixed;
-            bottom: 15px;
-            font-size: 0.85rem;
+            bottom: 20px;
             color: #ff9f43; /* 주황색 */
             font-weight: bold;
+            font-size: 0.9rem;
             letter-spacing: 1px;
-            opacity: 0.8;
-            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="tuner-glass-tube" id="tunerGlassTube">
-        <div class="gauge-lines" id="gaugeLines">
-            </div>
-        <div class="center-guide"></div>
+    <div class="glass-container">
+        <div class="ticks">
+            <div class="tick main"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div>
+            <div class="tick main"></div>
+            <div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick"></div><div class="tick main"></div>
+        </div>
+        <div class="center-line"></div>
         <div id="needle" class="needle"></div>
     </div>
 
-    <div class="info-display">
-        <div id="noteName" class="note-name">--</div>
-        <div id="frequencyVal" class="frequency-val">0.00 Hz</div>
+    <div class="display">
+        <div id="note" class="note">--</div>
+        <div id="freq" class="freq">0.00 Hz</div>
     </div>
 
-    <button id="startBtn" class="start-btn">튜너 시작</button>
+    <button id="startBtn" class="btn">튜너 시작</button>
 
     <div class="watermark">SONG,YOUNG-MIN Guitar Lab</div>
 
     <script>
-        /* ==========================================
-           전역 변수 설정
-           ========================================== */
-        let audioContext;       // 오디오 처리 핵심 객체
-        let analyser;           // 오디오 분석기 객체
-        let isRunning = false;  // 튜너 작동 상태 플래그
+        let audioContext;
+        let analyser;
+        let isRunning = false;
 
-        // 부드러운 움직임을 위한 변수
-        let smoothedAngle = 0;   // 현재 부드럽게 처리된 바늘 각도
-        let targetAngle = 0;     // 새로 검출된 목표 바늘 각도
-        const smoothingFactor = 0.1; // [요청사항] 부드러움 정도 (0 ~ 1 사이, 낮을수록 부드럽고 반응 속도가 조금 느려짐)
-
-        // DOM 요소 가져오기
         const needleEl = document.getElementById('needle');
-        const noteNameEl = document.getElementById('noteName');
-        const freqValEl = document.getElementById('frequencyVal');
-        const startBtnEl = document.getElementById('startBtn');
+        const noteEl = document.getElementById('note');
+        const freqEl = document.getElementById('freq');
+        const startBtn = document.getElementById('startBtn');
 
-        // 음명 배열 (12반음)
-        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-        /* ==========================================
-           UI 초기화: 아날로그 눈금 및 라벨 생성
-           ========================================== */
-        function createGauge() {
-            const gaugeLinesEl = document.getElementById('gaugeLines');
-            // -50센트부터 +50센트까지 10센트 단위로 눈금 생성
-            for (let i = -50; i <= 50; i += 10) {
-                const line = document.createElement('div');
-                line.className = 'line';
-                
-                // 0, -50, 50센트는 큰 눈금으로 표시
-                if (i === 0 || i === -50 || i === 50) {
-                    line.classList.add('big');
-                    // 주요 눈금 위에 숫자 라벨 추가
-                    const label = document.createElement('div');
-                    label.className = 'gauge-label';
-                    label.innerText = i;
-                    // 센트 값을 각도(-40도 ~ 40도)로 변환하여 CSS 회전 적용
-                    const angle = (i / 50) * 40; // 유리관 크기에 맞춰 각도 조절
-                    label.style.transform = `translateX(-50%) rotate(${angle}deg)`;
-                    line.appendChild(label);
-                } else {
-                    line.classList.add('small');
-                }
-                
-                const angle = (i / 50) * 40; 
-                line.style.transform = `translateX(-50%) rotate(${angle}deg)`;
-                gaugeLinesEl.appendChild(line);
-            }
-        }
-        createGauge(); // 페이지 로드 시 눈금 생성
-
-        /* ==========================================
-           튜너 시작/중지 제어 함수 (아이폰/안드로이드 호환)
-           ========================================== */
-        startBtnEl.addEventListener('click', async () => {
+        startBtn.addEventListener('click', async () => {
             if (isRunning) {
-                if (audioContext) await audioContext.close();
-                isRunning = false;
-                startBtnEl.innerText = "튜너 시작";
-                noteNameEl.innerText = "--";
-                freqValEl.innerText = "0.00 Hz";
-                targetAngle = 0; // 목표 각도 초기화
+                location.reload(); // 간단하게 중지 및 초기화
                 return;
             }
 
-            // --- iOS Safari 호환성 처리 ---
             const AudioContext = window.AudioContext || window.webkitAudioContext;
-            if (!AudioContext) {
-                alert("이 브라우저는 Web Audio API를 지원하지 않습니다.");
-                return;
-            }
-
             audioContext = new AudioContext();
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048; // 분석할 샘플 크기
+            analyser.fftSize = 2048;
 
             try {
-                // --- 마이크 접근 권한 요청 (반드시 클릭 핸들러 내부에서 호출) ---
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const microphone = audioContext.createMediaStreamSource(stream);
-                microphone.connect(analyser);
-                
+                audioContext.createMediaStreamSource(stream).connect(analyser);
                 isRunning = true;
-                startBtnEl.innerText = "튜너 중지";
-                
-                // 실시간 분석 루프 시작
-                updatePitchLoop();
-
+                startBtn.innerText = "튜너 중지";
+                startBtn.style.background = "#e74c3c";
+                update();
             } catch (err) {
-                console.error("마이크 접근 실패:", err);
-                alert("마이크 접근 권한이 필요합니다. 설정에서 마이크 권한을 허용해 주세요.");
-                isRunning = false;
+                alert("마이크 권한이 거부되었습니다.");
             }
         });
 
-        /* ==========================================
-           실시간 주파수 분석 및 UI 업데이트 루프
-           ========================================= */
-        function updatePitchLoop() {
-            if (!isRunning) return; // 중지 상태면 루프 종료
+        function update() {
+            if (!isRunning) return;
 
-            // 1. 오디오 분석 (주파수 검출)
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
-            const pitch = autoCorrelate(buffer, audioContext.sampleRate);
 
-            // 2. 유효한 주파수가 검출된 경우에만 정보 업데이트 및 목표 각도 계산
-            if (pitch !== -1 && pitch > 50 && pitch < 1000) { 
-                const noteNum = noteFromPitch(pitch);
-                const detuneCents = centsOffFromPitch(pitch, noteNum);
+            const pitch = getPitch(buffer, audioContext.sampleRate);
+
+            if (pitch !== -1) {
+                const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
+                const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
+                const cents = Math.floor(1200 * Math.log(pitch / standardFreq) / Math.log(2));
+
+                noteEl.innerText = notes[noteNum % 12];
+                freqEl.innerText = pitch.toFixed(2) + " Hz";
+
+                // [움직임 제어] 필터 없이 검출된 센트값을 즉각 반영 (예민한 모드)
+                // -50센트일 때 0%, 0센트일 때 50%, +50센트일 때 100% 위치로 이동
+                const position = 50 + (cents); // cents 범위가 보통 -50 ~ 50이므로
+                const limitedPos = Math.max(5, Math.min(95, position)); // 좌우 벽 뚫기 방지
                 
-                // 음명 및 주파수 표시
-                noteNameEl.innerText = noteStrings[noteNum % 12];
-                freqValEl.innerText = pitch.toFixed(2) + " Hz";   
-                
-                // 목표 각도 계산 (Cents를 각도로 매핑, -40도 ~ +40도)
-                const limitedCents = Math.max(-50, Math.min(50, detuneCents));
-                targetAngle = (limitedCents / 50) * 40; // 박스형 유리관에 맞춰 각도를 조금 줄임
+                needleEl.style.left = limitedPos + "%";
             }
 
-            // [요청사항] 로패스 필터(Low-pass Filter)를 사용해 바늘 움직임을 부드럽게 만듭니다.
-            // smoothedAngle = smoothedAngle + (targetAngle - smoothedAngle) * smoothingFactor;
-            // 즉, 현재 각도와 목표 각도 차이의 일부(smoothingFactor)만큼만 매 프레임 이동합니다.
-            smoothedAngle += (targetAngle - smoothedAngle) * smoothingFactor;
-
-            // 3. 부드럽게 계산된 각도를 바늘에 적용
-            needleEl.style.transform = `translateX(-50%) rotate(${smoothedAngle}deg)`;
-
-            // 다음 프레임에서 이 함수를 다시 호출
-            requestAnimationFrame(updatePitchLoop);
+            requestAnimationFrame(update);
         }
 
-        /* ==========================================
-           주파수 검출 알고리즘 및 유틸리티 함수 (이전과 동일)
-           ========================================= */
-        
-        // 자기상관법 (Autocorrelation) 알고리즘
-        function autoCorrelate(buf, sampleRate) {
-            let SIZE = buf.length;
+        // 주파수 검출 알고리즘 (Autocorrelation)
+        function getPitch(buf, sampleRate) {
+            let size = buf.length;
             let rms = 0;
-            for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-            if (Math.sqrt(rms / SIZE) < 0.01) return -1; 
+            for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
+            if (Math.sqrt(rms / size) < 0.01) return -1;
 
-            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
-            for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-            for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-            buf = buf.slice(r1, r2);
-            SIZE = buf.length;
-
-            let c = new Array(SIZE).fill(0);
-            for (let i = 0; i < SIZE; i++)
-                for (let j = 0; j < SIZE - i; j++)
+            let c = new Array(size).fill(0);
+            for (let i = 0; i < size; i++)
+                for (let j = 0; j < size - i; j++)
                     c[i] = c[i] + buf[j] * buf[j + i];
 
             let d = 0; while (c[d] > c[d + 1]) d++;
             let maxval = -1, maxpos = -1;
-            for (let i = d; i < SIZE; i++) {
-                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
+            for (let i = d; i < size; i++) {
+                if (c[i] > maxval) {
+                    maxval = c[i];
+                    maxpos = i;
+                }
             }
-            if (maxpos !== -1) return sampleRate / maxpos;
-            return -1;
-        }
-        
-        // 주파수(Hz)를 MIDI 노트 번호로 변환
-        function noteFromPitch(frequency) {
-            const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
-            return Math.round(noteNum) + 69;
-        }
-
-        // MIDI 노트 번호를 표준 주파수(Hz)로 변환
-        function frequencyFromNoteNumber(note) {
-            return 440 * Math.pow(2, (note - 69) / 12);
-        }
-
-        // 현재 주파수와 표준 주파수의 차이를 Cents(센트) 단위로 계산
-        function centsOffFromPitch(frequency, note) {
-            return Math.floor(1200 * Math.log(frequency / frequencyFromNoteNumber(note)) / Math.log(2));
+            return sampleRate / maxpos;
         }
     </script>
 </body>
