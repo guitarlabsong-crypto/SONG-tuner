@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner v6 - Gravity & High Sensitivity</title>
+    <title>SYM Guitar Tuner v7 - Ultra Fast Response</title>
     <style>
-        /* 전체 레이아웃 - 회색 배경 */
+        /* [1] 레이아웃 및 배경 설정 */
         body { 
-            background: #cbd3da; 
+            background: #cbd3da; /* 회색 배경 */
             color: #333; 
             display: flex; 
             flex-direction: column; 
@@ -16,12 +16,13 @@
             height: 100vh; 
             margin: 0; 
             padding: 20px 0; 
-            font-family: sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             box-sizing: border-box;
             user-select: none;
+            overflow: hidden;
         }
 
-        /* [상단] 음명 및 Hz 표시부 */
+        /* [2] 상단 음명 및 Hz 표시부 */
         .top-display { text-align: center; margin-top: 10px; }
         .note-alpha {
             font-size: 7rem;
@@ -30,36 +31,37 @@
             line-height: 1;
             transition: color 0.1s, text-shadow 0.1s;
         }
+        /* 정튜닝 시 화려한 네온 효과 */
         .note-alpha.tuned {
             color: #fff;
-            text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71;
+            text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71, 0 0 60px #2ecc71;
         }
         .freq-display { font-size: 1.5rem; color: #636e72; font-family: monospace; margin-top: 10px; }
 
-        /* [중앙] 직사각형 유리관 디자인 */
+        /* [3] 직사각형 유리관 디자인 */
         .glass-rect-container {
             position: relative;
             width: 92%;
             max-width: 550px;
-            height: 180px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 3px solid rgba(0, 0, 0, 0.1);
+            height: 160px; /* 세로 폭 확대 */
+            background: rgba(255, 255, 255, 0.25);
+            border: 2px solid rgba(0, 0, 0, 0.1);
             border-radius: 12px;
             box-shadow: 
-                inset 0 15px 30px rgba(255, 255, 255, 0.4),
-                inset 0 -10px 20px rgba(0, 0, 0, 0.05),
-                0 15px 30px rgba(0, 0, 0, 0.1);
+                inset 0 10px 20px rgba(255, 255, 255, 0.5),
+                inset 0 -5px 15px rgba(0, 0, 0, 0.05),
+                0 10px 25px rgba(0, 0, 0, 0.1);
             display: flex;
             align-items: center;
             overflow: hidden;
         }
 
-        /* 유리관 반사광 */
+        /* 유리관 상단 반사광 */
         .glass-rect-container::after {
             content: '';
             position: absolute;
-            top: 0; left: 0; right: 0; height: 40%;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.3) 0%, transparent 100%);
+            top: 0; left: 0; right: 0; height: 45%;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.4) 0%, transparent 100%);
             pointer-events: none;
         }
 
@@ -73,10 +75,10 @@
             justify-content: space-between;
             align-items: center;
             z-index: 1;
-            opacity: 0.3;
+            opacity: 0.25;
         }
-        .tick { width: 1px; height: 15px; background: #000; position: relative; }
-        .tick.major { height: 45px; width: 2px; }
+        .tick { width: 1px; height: 12px; background: #000; position: relative; }
+        .tick.major { height: 40px; width: 2px; }
         .tick-label {
             position: absolute;
             bottom: -25px;
@@ -86,18 +88,18 @@
             font-weight: bold;
         }
 
-        /* [바늘] 중력 엔진으로 제어될 시침 */
+        /* [4] 중력 엔진 바늘 (연속 수음 대응) */
         .needle {
             position: absolute;
-            width: 5px;
+            width: 4px;
             height: 100%;
             background: #e74c3c;
-            left: 5%; /* 초기 위치 (왼쪽 끝) */
+            left: 5%; /* 기본 위치 */
             transform: translateX(-50%);
             z-index: 10;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
-            /* 물리 엔진을 위해 CSS transition은 가급적 제거하거나 매우 짧게 설정 */
-            transition: background 0.2s; 
+            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+            /* 부드러운 색상 전환만 transition 적용, 위치는 JS가 제어 */
+            transition: background 0.2s, box-shadow 0.2s; 
         }
         .needle.tuned { background: #2ecc71; box-shadow: 0 0 20px #2ecc71; }
 
@@ -111,7 +113,7 @@
             z-index: 2;
         }
 
-        /* [하단] 조작 및 워터마크 */
+        /* [5] 하단 버튼 및 워터마크 */
         .bottom-area {
             width: 100%;
             display: flex;
@@ -120,7 +122,7 @@
             gap: 20px;
         }
         .tuner-btn {
-            padding: 22px 75px;
+            padding: 22px 80px;
             font-size: 1.4rem;
             font-weight: bold;
             background: #2d3436;
@@ -128,15 +130,17 @@
             color: white;
             border-radius: 50px;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            -webkit-tap-highlight-color: transparent;
         }
         .tuner-btn.running { background: #d63031; }
 
         .lab-watermark {
-            color: gray; /* 주황색 워터마크 */
+            color: #ff9f43; /* 주황색 워터마크 */
             font-weight: bold;
             letter-spacing: 1.5px;
             font-size: 1rem;
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.1);
         }
     </style>
 </head>
@@ -159,16 +163,20 @@
     </div>
 
     <script>
-        /* [전역 변수 및 물리 엔진 변수] */
+        /* [변수 설명]
+           currentPos: 바늘의 현재 가로 위치 (%)
+           velocity: 바늘의 이동 속도
+           targetPos: 주파수 분석으로 도달해야 할 목표 위치
+        */
         let audioContext, analyser, animationId;
         let isRunning = false;
         let lastBeepTime = 0;
 
-        // 물리 엔진 관련
-        let currentPos = 5;      // 현재 바늘 위치 (%)
-        let velocity = 0;        // 바늘 이동 속도
-        const gravity = 0.3;     // 왼쪽으로 당기는 중력의 힘 (숫자가 클수록 빨리 떨어짐)
-        const friction = 0.4;   // 마찰력 (움직임의 부드러움 조절)
+        let currentPos = 5;      
+        let velocity = 0;        
+        const gravity = 0.9;     // 소리 없을 때 왼쪽으로 떨어지는 힘
+        const friction = 0.88;   // 움직임의 떨림을 잡아주는 마찰력
+        const followSpeed = 0.85; // [초고속 수음] 소리가 들릴 때 바늘이 목표를 쫓아가는 속도 (0~1)
 
         const needleEl = document.getElementById('needle');
         const noteEl = document.getElementById('noteDisplay');
@@ -178,9 +186,9 @@
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-        /* [눈금 초기화] */
+        /* 눈금 생성 로직 (-50 ~ +50) */
         function initTicks() {
-            for (let i = -50; i <= 50; i += 5) { // 2배 더 많은 눈금
+            for (let i = -50; i <= 50; i += 5) {
                 const tick = document.createElement('div');
                 tick.className = 'tick';
                 if (i % 10 === 0) {
@@ -195,7 +203,7 @@
         }
         initTicks();
 
-        /* [튜너 제어] */
+        /* 시작/중지 제어 */
         startBtn.addEventListener('click', async () => {
             if (isRunning) {
                 stopTuner();
@@ -208,7 +216,7 @@
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             audioContext = new AudioCtx();
             analyser = audioContext.createAnalyser();
-            // fftSize가 크면 정밀하지만 반응이 느려짐. 민감도를 위해 2048 사용
+            // 연속성을 위해 fftSize를 2048로 설정 (반응속도 최적화)
             analyser.fftSize = 2048; 
 
             try {
@@ -219,9 +227,9 @@
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
                 startBtn.classList.add('running');
-                updateLoop();
+                updateLoop(); // 초고속 루프 시작
             } catch (err) {
-                alert("마이크를 사용할 수 없습니다.");
+                alert("마이크를 사용할 수 없습니다. 권한을 확인해주세요.");
             }
         }
 
@@ -234,20 +242,21 @@
             noteEl.innerText = "--";
             noteEl.classList.remove('tuned');
             freqEl.innerText = "0.00 Hz";
+            // 중단 시 바늘 위치 초기화는 중력 로직에 맡기거나 즉시 수정 가능
         }
 
-        /* [메인 루프] 물리 엔진 + 수음 루프 */
+        /* [초고속 수음 메인 루프] - 약 0.016초마다 실행 */
         function updateLoop() {
             if (!isRunning) return;
 
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
 
-            // 주파수 검출 (초기 버전의 높은 민감도 로직)
+            // 1. 소리 분석 (고민감도 알고리즘)
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
-            if (pitch !== -1 && pitch > 50 && pitch < 1000) {
-                // 소리가 감지될 때: 바늘이 주파수 위치로 즉각 반응
+            if (pitch !== -1 && pitch > 50 && pitch < 1200) {
+                // [소리가 감지된 경우]
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const cents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
@@ -255,78 +264,72 @@
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = pitch.toFixed(2) + " Hz";
 
-                // 목표 위치 계산 (-50~50 센트를 5%~95% 범위로 전환)
+                // 목표 위치 계산 (5% ~ 95% 범위)
                 let targetPos = 50 + (cents * 0.9);
                 targetPos = Math.max(5, Math.min(95, targetPos));
 
-                // 소리가 들릴 때는 중력을 이기고 해당 위치로 바늘을 고정/미세떨림 표현
-                velocity = (targetPos - currentPos) * 0.6; // 반응성 0.6 (매우 빠름)
+                // [핵심] 초고속 추격: 현재 위치에서 목표 위치로 아주 빠르게 속도를 보정
+                velocity = (targetPos - currentPos) * followSpeed;
                 
-                // 정튜닝 효과 및 사운드
+                // 정튜닝 판단 (±3센트)
                 if (Math.abs(cents) <= 3) {
                     noteEl.classList.add('tuned');
                     needleEl.classList.add('tuned');
-                    playBeep();
+                    playBeep(); 
                 } else {
                     noteEl.classList.remove('tuned');
                     needleEl.classList.remove('tuned');
                 }
             } else {
-                // 소리가 감지되지 않을 때: [중력 엔진 작동]
-                // 왼쪽(5%) 방향으로 가속도를 붙여 떨어뜨림
-                const pullToLeft = 5;
-                velocity += (pullToLeft - currentPos) * 0.05; // 왼쪽으로 끌어당기는 힘
-                velocity -= gravity * 0.2; // 추가적인 중력 가속도
+                // [소리가 감지되지 않는 경우: 중력 효과]
+                // 왼쪽 끝(5%)으로 가려는 힘 발생
+                velocity += (5 - currentPos) * 0.05; 
+                velocity -= gravity * 0.15; // 중력 가속도 추가
                 
                 noteEl.classList.remove('tuned');
                 needleEl.classList.remove('tuned');
             }
 
-            // 물리 연산 적용 (위치 = 현재위치 + 속도)
-            velocity *= friction; // 마찰력 적용하여 덜덜거림 방지
+            // 2. 물리 연산 적용
+            velocity *= friction; // 마찰력으로 속도 감쇄
             currentPos += velocity;
 
-            // 바닥(왼쪽 끝) 튕김 방지 및 고정
-            if (currentPos <= 5) {
-                currentPos = 5;
-                velocity = 0;
-            }
-            if (currentPos >= 95) {
-                currentPos = 95;
-                velocity = 0;
-            }
+            // 경계값 처리 (유리관 벽 뚫기 방지)
+            if (currentPos <= 5) { currentPos = 5; velocity = 0; }
+            if (currentPos >= 95) { currentPos = 95; velocity = 0; }
 
-            // 실제 DOM에 반영
+            // 3. 바늘 위치 업데이트 (CSS transform보다 left가 직관적이라 유지)
             needleEl.style.left = currentPos + "%";
 
+            // 브라우저의 다음 프레임에 맞춰 다시 실행 (약 60~120fps)
             animationId = requestAnimationFrame(updateLoop);
         }
 
-        /* [효과음] 뚜뚜 비프음 */
+        /* 뚜뚜 효과음 (정튜닝 시) */
         function playBeep() {
             const now = Date.now();
-            if (now - lastBeepTime < 600) return;
+            if (now - lastBeepTime < 700) return; // 0.7초 간격 제한
             lastBeepTime = now;
 
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(1000, audioContext.currentTime);
-            gain.gain.setValueAtTime(0.05, audioContext.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.04, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
             osc.connect(gain);
             gain.connect(audioContext.destination);
             osc.start();
             osc.stop(audioContext.currentTime + 0.1);
         }
 
-        /* [알고리즘] 초기 버전 기반의 고민감도 Autocorrelation */
+        /* 고민감도 주파수 검출 알고리즘 */
         function getPitch(buf, sampleRate) {
             let size = buf.length;
             let rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            // 소리 인식 문턱값(Threshold)을 0.005로 낮춰서 아주 작은 소리도 잡게 함
-            if (Math.sqrt(rms / size) < 0.005) return -1;
+            // RMS 문턱값을 낮추어 아주 미세한 기타 잔향도 잡아냄
+            if (Math.sqrt(rms / size) < 0.003) return -1;
 
             let c = new Array(size).fill(0);
             for (let i = 0; i < size; i++)
