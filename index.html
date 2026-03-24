@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner v12 - High-Freq Precision</title>
+    <title>SYM Guitar Tuner v13 - Dynamic Color</title>
     <style>
-        /* [1] 전체 레이아웃 설정 */
+        /* [1] 기본 레이아웃 */
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
@@ -14,12 +14,12 @@
             user-select: none; overflow: hidden;
         }
 
-        /* [2] 상단 음명 및 주파수 표시 */
+        /* [2] 상단 디스플레이 */
         .top-display { text-align: center; margin-top: 10px; }
         .note-alpha {
             font-size: 7.5rem; font-weight: 900; color: #7f8c8d; line-height: 1;
         }
-        /* 정튜닝 성공 시 네온 조명 효과 */
+        /* 정튜닝 시 글자만 초록색 네온 효과 */
         .note-alpha.tuned {
             color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 50px #2ecc71;
         }
@@ -28,7 +28,7 @@
             margin-top: 5px; font-weight: bold;
         }
 
-        /* [3] 중앙 바늘 이동 경로 (유리관) */
+        /* [3] 중앙 유리관 */
         .glass-rect-container {
             position: relative; width: 92%; max-width: 550px; height: 170px;
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(0, 0, 0, 0.1);
@@ -37,24 +37,22 @@
             display: flex; align-items: center; overflow: hidden;
         }
 
-        /* [4] 바늘 디자인 (검정 중심 + 주황 테두리) */
+        /* [4] 다이내믹 바늘 (JS에서 배경색 제어) */
         .needle {
-            position: absolute; width: 8px; height: 100%; background: #000; 
-            border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43; 
+            position: absolute; width: 8px; height: 100%; 
+            background: #000; /* 중심은 검정 유지 */
             left: 5%; transform: translateX(-50%); z-index: 10;
-            box-shadow: 0 0 10px rgba(255, 159, 67, 0.5); box-sizing: border-box;
-        }
-        /* 정튜닝 시 바늘 테두리 녹색 변경 */
-        .needle.tuned { 
-            border-left-color: #2ecc71; border-right-color: #2ecc71;
-            box-shadow: 0 0 20px #2ecc71; 
+            box-sizing: border-box;
+            border-left: 3px solid #ff9f43; /* 초기 테두리 주황 */
+            border-right: 3px solid #ff9f43;
+            transition: border-color 0.1s ease; /* 색상 변화를 부드럽게 */
         }
 
-        /* 눈금 레이아웃 */
+        /* 눈금 및 가이드 */
         .ticks-container {
             position: absolute; width: 90%; left: 5%; height: 100%;
             display: flex; justify-content: space-between; align-items: center;
-            z-index: 1; opacity: 0.3;
+            z-index: 1; opacity: 0.2;
         }
         .tick { width: 1px; height: 12px; background: #000; position: relative; }
         .tick.major { height: 40px; width: 2px; }
@@ -64,23 +62,19 @@
         }
         .center-guide {
             position: absolute; width: 2px; height: 100%;
-            background: rgba(46, 204, 113, 0.4); left: 50%;
+            background: rgba(255, 255, 255, 0.5); left: 50%;
             transform: translateX(-50%); z-index: 2;
         }
 
-        /* [5] 하단 영역 및 축소된 버튼 */
+        /* [5] 하단 영역 */
         .bottom-area {
             width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px;
         }
         .tuner-btn {
-            padding: 12px 40px; /* 버튼 크기를 작게 조절 */
-            font-size: 1.1rem; /* 글자 크기 조정 */
-            font-weight: bold;
+            padding: 12px 40px; font-size: 1.1rem; font-weight: bold;
             background: #34495e; border: none; color: white; border-radius: 30px; cursor: pointer;
-            transition: background 0.3s;
         }
-        .tuner-btn.running { background: #c0392b; } /* 정지 버튼은 빨간색 */
-
+        .tuner-btn.running { background: #c0392b; }
         .lab-watermark {
             color: #7f8c8d; font-weight: bold; letter-spacing: 1.5px; font-size: 0.85rem;
         }
@@ -105,15 +99,13 @@
     </div>
 
     <script>
-        // 전역 변수 관리
         let audioContext, analyser, animationId;
         let isRunning = false;
         let lastBeepTime = 0;
 
-        // 물리 및 필터링 변수
         let currentPos = 5;      
         let velocity = 0;        
-        let smoothedCents = 0;   // 고음역대 미세 떨림 방지용 필터값
+        let smoothedCents = 0;   
         const gravity = 0.8;      
 
         const needleEl = document.getElementById('needle');
@@ -124,9 +116,6 @@
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-        /**
-         * 눈금 동적 생성 함수
-         */
         function initTicks() {
             for (let i = -50; i <= 50; i += 5) {
                 const tick = document.createElement('div');
@@ -143,21 +132,16 @@
         }
         initTicks();
 
-        // 버튼 클릭 핸들러
         startBtn.addEventListener('click', async () => {
             if (isRunning) { stopTuner(); return; }
             startTuner();
         });
 
-        /**
-         * 오디오 분석 시작
-         */
         async function startTuner() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             audioContext = new AudioCtx();
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
-
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
                     audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
@@ -167,12 +151,9 @@
                 startBtn.innerText = "튜너 중지";
                 startBtn.classList.add('running');
                 updateLoop();
-            } catch (err) { alert("마이크 권한 요청이 거절되었습니다."); }
+            } catch (err) { alert("마이크 권한이 필요합니다."); }
         }
 
-        /**
-         * 튜너 작동 중지
-         */
         function stopTuner() {
             cancelAnimationFrame(animationId);
             if (audioContext) audioContext.close();
@@ -182,36 +163,65 @@
             noteEl.innerText = "--";
             freqEl.innerText = "0 Hz";
             noteEl.classList.remove('tuned');
-            needleEl.classList.remove('tuned');
+            needleEl.style.borderColor = "#ff9f43"; // 색상 초기화
         }
 
         /**
-         * 실시간 주파수 분석 루프 (핵심 업데이트 로직 포함)
+         * 바늘의 위치에 따라 테두리 색상을 계산하는 핵심 함수
+         * @param {number} pos - 바늘의 현재 위치 (5% ~ 95%)
+         * @param {boolean} isTuned - 정튜닝 여부 (1Hz 이내)
          */
+        function updateNeedleColor(pos, isTuned) {
+            if (isTuned) {
+                // [1] 정튜닝 시: 선명한 초록색
+                needleEl.style.borderColor = "#2ecc71";
+                needleEl.style.boxShadow = "0 0 15px #2ecc71";
+                return;
+            }
+
+            // 중앙(50%) 기준 오차 계산 (-45 ~ +45)
+            const offset = pos - 50; 
+            let color;
+
+            if (offset < 0) {
+                // [2] 음이 낮을 때 (왼쪽): 주황 계열
+                // -45(진한 주황) -> 0(연한 주황)
+                const ratio = Math.abs(offset) / 45; // 0 ~ 1 사이 비율
+                const lightness = 60 + (ratio * -10); // 중앙으로 올수록 밝아짐
+                color = `hsl(30, 100%, ${lightness}%)`; // 주황색 HSL 계산
+            } else {
+                // [3] 음이 높을 때 (오른쪽): 빨강 계열
+                // 0(연한 빨강) -> +45(진한 빨강)
+                const ratio = offset / 45; 
+                const lightness = 60 - (ratio * 20); // 멀어질수록 진해짐(어두워짐)
+                color = `hsl(0, 100%, ${lightness}%)`; // 빨간색 HSL 계산
+            }
+            
+            needleEl.style.borderColor = color;
+            needleEl.style.boxShadow = `0 0 10px ${color}`;
+        }
+
         function updateLoop() {
             if (!isRunning) return;
 
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
-
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
+            let isTunedThisFrame = false;
+
             if (pitch !== -1 && pitch > 50 && pitch < 1200) {
-                const intPitch = Math.round(pitch); // 정수 Hz
+                const intPitch = Math.round(pitch);
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
                 let followSpeed, frictionValue;
-
-                // [업데이트] 200Hz 이상 고음 줄 대응 필터링 및 물리 계수 조정
                 if (pitch >= 200) {
-                    followSpeed = 0.05; // 고음일수록 바늘을 아주 무겁게 이동 (0.05)
-                    frictionValue = 0.7; // 고음일수록 마찰력을 높여 떨림 방지
-                    smoothedCents = (smoothedCents * 0.92) + (rawCents * 0.08); // 고음 필터링 대폭 강화
+                    followSpeed = 0.05; frictionValue = 0.7;
+                    smoothedCents = (smoothedCents * 0.92) + (rawCents * 0.08);
                 } else {
-                    followSpeed = 0.15; // 저음은 반응성 위주로
-                    frictionValue = 0.8;
+                    followSpeed = 0.15; frictionValue = 0.8;
                     smoothedCents = (smoothedCents * 0.6) + (rawCents * 0.4);
                 }
 
@@ -221,72 +231,58 @@
                 let targetPos = 50 + (smoothedCents * 0.9);
                 targetPos = Math.max(5, Math.min(95, targetPos));
 
-                // 물리 엔진으로 바늘 위치 계산
                 velocity += (targetPos - currentPos) * followSpeed;
                 velocity *= frictionValue; 
 
-                // [업데이트] 오차범위 1Hz 이내면 무조건 정튜닝 인정
-                // 고음역대에서 센트 단위가 예민하므로 절대값 Hz 차이로 판정 기준 변경
+                // 1Hz 오차 판정
                 if (Math.abs(pitch - standardFreq) <= 1.0) {
+                    isTunedThisFrame = true;
                     noteEl.classList.add('tuned');
-                    needleEl.classList.add('tuned');
-                    playNoteBeep(standardFreq); // 성공 효과음
+                    playNoteBeep(standardFreq);
                 } else {
                     noteEl.classList.remove('tuned');
-                    needleEl.classList.remove('tuned');
                 }
             } else {
-                // 무음 시 왼쪽으로 스르르 복귀
                 velocity += (5 - currentPos) * 0.02; 
                 velocity -= gravity * 0.1;
                 velocity *= 0.8;
                 noteEl.classList.remove('tuned');
-                needleEl.classList.remove('tuned');
             }
 
             currentPos += velocity;
             if (currentPos <= 5) { currentPos = 5; velocity = 0; }
             if (currentPos >= 95) { currentPos = 95; velocity = 0; }
 
-            needleEl.style.left = currentPos + "%"; // 바늘 위치 적용
+            // [추가] 실시간 색상 업데이트 함수 호출
+            updateNeedleColor(currentPos, isTunedThisFrame);
+
+            needleEl.style.left = currentPos + "%";
             animationId = requestAnimationFrame(updateLoop);
         }
 
-        /**
-         * 정튜닝 시 알림음 발생 함수
-         */
         function playNoteBeep(freq) {
             const now = Date.now();
-            if (now - lastBeepTime < 950) return; // 알림음 간격 확보
+            if (now - lastBeepTime < 950) return;
             lastBeepTime = now;
-
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, audioContext.currentTime);
             gain.gain.setValueAtTime(0.04, audioContext.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
-            osc.connect(gain);
-            gain.connect(audioContext.destination);
-            osc.start();
-            osc.stop(audioContext.currentTime + 0.2);
+            osc.connect(gain); gain.connect(audioContext.destination);
+            osc.start(); osc.stop(audioContext.currentTime + 0.2);
         }
 
-        /**
-         * 주파수 추출 알고리즘
-         */
         function getPitch(buf, sampleRate) {
             let size = buf.length;
             let rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            // 노이즈 차단을 위해 임계값을 살짝 높게 유지 (0.009)
             if (Math.sqrt(rms / size) < 0.009) return -1;
-
             let c = new Array(size).fill(0);
             for (let i = 0; i < size; i++)
                 for (let j = 0; j < size - i; j++)
                     c[i] = c[i] + buf[j] * buf[j + i];
-
             let d = 0; while (c[d] > c[d + 1]) d++;
             let maxval = -1, maxpos = -1;
             for (let i = d; i < size; i++) {
