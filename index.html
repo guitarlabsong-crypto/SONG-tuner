@@ -3,94 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SYM Guitar Tuner v26 - Studio Edition</title>
+    <title>SYM Guitar Tuner v27 - Music Pattern Edition</title>
     <style>
-        /* [핵심] 모든 기기에서 화면이 꽉 차도록 설정 */
+        /* [1. 전체 레이아웃 설정] */
         html, body {
             height: 100%;
-            height: -webkit-fill-available;
+            /* iOS/Android 브라우저의 주소창 제외 실제 가용 높이를 꽉 채움 */
+            height: -webkit-fill-available; 
             margin: 0; padding: 0;
-            overflow: hidden;
+            overflow: hidden; /* 스크롤 방지 */
         }
 
         body { 
-            /* [수정] 배경 이미지 추가 (기본: 세련된 기타 스튜디오 이미지) */
-            /* 사진 위에 어두운 오버레이를 씌워 글자 가독성을 확보합니다. */
-            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
-                        url('https://images.unsplash.com/photo-1550985616-10810253b84d?q=80&w=1000&auto=format&fit=crop') no-repeat center center;
-            background-size: cover;
+            /* [2. 배경 디자인: 높은음자리표 패턴] */
+            /* 외부 사진 대신 SVG 코드로 높은음자리표를 직접 그려 배경으로 반복 배치 */
+            background-color: #cbd3da; /* 기본 배경색 (부드러운 그레이블루) */
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M45.5,91.2c-5.1,0-9.6-1.5-13.4-4.6c-3.8-3.1-5.7-7.2-5.7-12.3c0-4.6,1.4-8.5,4.3-11.7c2.8-3.2,6.5-5.3,11-6.3l1.8-0.4 c-1.2-3.8-1.8-7.7-1.8-11.7c0-6.9,1.7-12.8,5.1-17.7c3.4-4.9,7.9-7.4,13.5-7.4c2.8,0,5.3,0.7,7.6,2.1s4.1,3.4,5.4,6s1.9,5.5,1.9,8.8 c0,4.8-1.4,9-4.2,12.6c-2.8,3.6-6.6,6.1-11.4,7.5l-2.1,0.6c1.3,4.6,2,9.3,2,14.1c0,7.1-1.7,13.2-5.1,18.2 C51.2,88.7,46.1,91.2,45.5,91.2z M45.5,84.1c3.1,0,5.8-1.8,8.2-5.5s3.5-8.4,3.5-14.2c0-3.9-0.5-7.7-1.6-11.4l-1.4,0.4 c-3.5,1.1-6.4,3.1-8.5,6c-2.1,2.9-3.2,6.4-3.2,10.4c0,3.5,1.2,6.4,3.5,8.7C41.4,82.8,43.2,84.1,45.5,84.1z M57.8,25.4 c0-2.4-0.6-4.3-1.8-5.8c-1.2-1.5-2.7-2.2-4.6-2.2c-3.6,0-6.5,1.7-8.7,5.2c-2.2,3.5-3.3,7.9-3.3,13.3c0,3.3,0.4,6.5,1.3,9.5l1.6-0.5 c3.5-1.1,6.4-3,8.7-5.9C56.3,33.7,57.8,30.1,57.8,25.4z' fill='rgba(255, 255, 255, 0.12)'/%3E%3C/svg%3E");
+            background-size: 120px 120px; /* 패턴의 크기 조절 */
             
-            color: #fff; 
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: space-around; 
+            justify-content: space-around; /* 요소 간격을 화면에 맞춰 자동 분산 */
             padding: 4vh 20px; 
             font-family: 'Segoe UI', sans-serif; 
             box-sizing: border-box; 
             user-select: none;
         }
 
-        .top-display { 
-            flex-shrink: 1;
-            text-align: center; 
-        }
-
-        /* [수정] 배경이 어두우므로 폰트 색상을 밝게 변경 */
+        /* [3. 상단 디스플레이: 음정 및 주파수] */
+        .top-display { text-align: center; flex-shrink: 1; }
         .note-alpha { 
+            /* 화면 높이에 따라 폰트 크기가 자동 조절되어 잘림 방지 */
             font-size: clamp(5rem, 18vh, 8.5rem); 
-            font-weight: 900; 
-            color: rgba(255, 255, 255, 0.4); 
-            line-height: 1; 
+            font-weight: 900; color: #7f8c8d; line-height: 1; 
         }
-        .note-alpha.tuned { color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71; }
-        .freq-display { font-size: 1.5rem; color: rgba(255, 255, 255, 0.8); font-family: monospace; font-weight: bold; margin-top: 1vh; }
+        .note-alpha.tuned { 
+            color: #fff; /* 정튜닝 시 흰색으로 강조 */
+            text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71; /* 초록색 빛 효과 */
+        }
+        .freq-display { font-size: 1.5rem; color: #636e72; font-family: monospace; font-weight: bold; margin-top: 1vh; }
 
-        /* [수정] 유리 질감(Glassmorphism) 효과 추가 */
+        /* [4. 중앙 튜너 창: 유리 질감 박스] */
         .glass-rect-container {
             position: relative; width: 100%; max-width: 500px; 
             height: clamp(100px, 18vh, 160px); 
-            background: rgba(255, 255, 255, 0.15); 
-            backdrop-filter: blur(12px); /* 뒤 배경을 흐리게 하여 입체감 부여 */
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.3); /* 반투명 흰색 배경 */
+            backdrop-filter: blur(8px); /* 뒤쪽 패턴을 살짝 흐리게 처리 (Glassmorphism) */
+            border: 1px solid rgba(0, 0, 0, 0.05);
             border-radius: 20px; 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            box-shadow: inset 0 5px 20px rgba(255, 255, 255, 0.5);
             display: flex; align-items: center; overflow: hidden;
             flex-shrink: 0; 
         }
 
-        /* [수정] 어두운 배경에 맞춰 바늘 색상을 흰색으로 변경 */
+        /* [5. 바늘 디자인] */
         .needle {
             position: absolute; width: 8px; height: 100%; 
-            background: #fff; left: 5%; transform: translateX(-50%); z-index: 10;
-            border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43;
+            background: #000; left: 5%; /* 초기 위치: -50센트(왼쪽 끝) */
+            transform: translateX(-50%); z-index: 10;
+            border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43; /* 오렌지색 테두리 포인트 */
             box-sizing: border-box;
+            transition: border-color 0.2s;
         }
 
+        /* [6. 눈금 디자인] */
         .ticks-container {
             position: absolute; width: 90%; left: 5%; height: 100%;
-            display: flex; justify-content: space-between; align-items: center; z-index: 1; opacity: 0.5;
+            display: flex; justify-content: space-between; align-items: center; z-index: 1; opacity: 0.3;
         }
-        .tick.major { height: 30%; width: 2px; background: #fff; position: relative; }
-        .tick-label { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; font-weight: bold; color: #fff; }
+        .tick.major { height: 30%; width: 2px; background: #000; position: relative; }
+        .tick-label { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; font-weight: bold; }
 
-        .bottom-area { 
-            width: 100%; display: flex; flex-direction: column; align-items: center; 
-            gap: 3vh; 
-            flex-shrink: 1;
-        }
-
-        /* [수정] 버튼을 작가님의 시그니처 컬러인 오렌지 계열로 강조 */
+        /* [7. 하단 영역 및 버튼] */
+        .bottom-area { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 3vh; }
         .tuner-btn {
             padding: clamp(15px, 2.5vh, 25px) clamp(40px, 10vw, 80px);
             font-size: clamp(1.2rem, 3vh, 1.6rem); 
-            background: #ff9f43; 
-            border: none; color: white; border-radius: 50px; 
+            background: #34495e; border: none; color: white; border-radius: 50px; 
             cursor: pointer; -webkit-tap-highlight-color: transparent;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
             font-weight: bold;
         }
-        .tuner-btn.running { background: #c0392b; }
-        .lab-watermark { color: rgba(255, 255, 255, 0.5); font-weight: bold; font-size: 0.85rem; letter-spacing: 2px; }
+        .tuner-btn.running { background: #c0392b; } /* 작동 중일 때 빨간색 */
+        .lab-watermark { color: #7f8c8d; font-weight: bold; font-size: 0.85rem; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -111,16 +105,27 @@
     </div>
 
     <script>
+        /**
+         * [핵심 로직]
+         * 1. 마이크를 통해 들어온 날것(Raw)의 주파수를 수집합니다.
+         * 2. 최근 15개의 주파수 데이터를 산술 평균(Simple Moving Average) 냅니다.
+         * 3. 필터 대신 평균값을 사용해 아이폰의 끊김 공격에도 바늘이 차분하게 움직입니다.
+         */
         let audioContext, analyser, animationId;
         let isRunning = false;
-        let pitchHistory = []; 
-        const HISTORY_SIZE = 15; 
+        
+        let pitchHistory = []; // 평균값을 내기 위한 데이터 바구니
+        const HISTORY_SIZE = 15; // 바구니 크기 (15개가 차면 가장 오래된 것부터 버림)
+
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         
-        const needleEl = document.getElementById('needle'), noteEl = document.getElementById('noteDisplay');
-        const freqEl = document.getElementById('freqDisplay'), startBtn = document.getElementById('startBtn');
+        const needleEl = document.getElementById('needle');
+        const noteEl = document.getElementById('noteDisplay');
+        const freqEl = document.getElementById('freqDisplay');
+        const startBtn = document.getElementById('startBtn');
         const ticksContainer = document.getElementById('ticksContainer');
 
+        // 눈금 초기화 (-50 ~ +50)
         function initTicks() {
             for (let i = -50; i <= 50; i += 10) {
                 const tick = document.createElement('div');
@@ -134,18 +139,24 @@
         }
         initTicks();
 
+        // [버튼 이벤트] 튜너 시작 및 중지
         startBtn.addEventListener('click', async () => {
             if (isRunning) { stopTuner(); return; }
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 audioContext = new AudioCtx({ sampleRate: 48000 });
+                
+                // [중요] 아이폰/안드로이드 시스템의 소리 가공(소음 제거 등)을 최소화
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
                 });
+                
                 if (audioContext.state === 'suspended') { await audioContext.resume(); }
+
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 2048; 
-                analyser.smoothingTimeConstant = 0; 
+                analyser.smoothingTimeConstant = 0; // 분석기 자체 필터링을 끄고 순수 데이터만 확보
+
                 audioContext.createMediaStreamSource(stream).connect(analyser);
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
@@ -161,21 +172,24 @@
             startBtn.innerText = "튜너 시작";
             startBtn.classList.remove('running');
             noteEl.innerText = "--"; freqEl.innerText = "0 Hz";
-            pitchHistory = [];
-            needleEl.style.left = "5%";
+            pitchHistory = []; // 바구니 비우기
+            needleEl.style.left = "5%"; // 바늘 -50으로 복귀
             needleEl.style.borderColor = "#ff9f43";
         }
 
+        // [메인 루프] 매 프레임마다 소리를 분석하여 화면 갱신
         function updateLoop() {
             if (!isRunning) return;
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
-            if (pitch !== -1 && pitch > 50 && pitch < 1200) {
+            if (pitch !== -1 && pitch > 50 && pitch < 1200) { // 유효한 주파수(기타 대역)일 때만 작동
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
+                
+                // 평균값 엔진 작동
                 pitchHistory.push(rawCents);
                 if (pitchHistory.length > HISTORY_SIZE) pitchHistory.shift();
                 const avgCents = pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length;
@@ -183,33 +197,40 @@
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = Math.round(pitch) + " Hz";
 
+                // 바늘 위치 계산 (0센트가 중앙 50% 지점)
                 let targetPos = 50 + (avgCents * 0.9);
-                targetPos = Math.max(5, Math.min(95, targetPos));
+                targetPos = Math.max(5, Math.min(95, targetPos)); // 유리창 밖으로 안 나가게 제한
                 needleEl.style.left = targetPos + "%";
 
+                // [정튜닝 판정] 평균 오차가 3센트 미만일 때
                 if (Math.abs(avgCents) < 3) {
                     noteEl.classList.add('tuned');
-                    needleEl.style.borderColor = "#2ecc71";
+                    needleEl.style.borderColor = "#2ecc71"; // 초록색
                 } else {
                     noteEl.classList.remove('tuned');
                     needleEl.style.borderColor = avgCents < 0 ? "#ff9f43" : "#ff4d4d";
                 }
             } else {
+                // 소리가 끊기면 바구니를 서서히 비우며 바늘을 왼쪽 끝(-50)으로 복귀시킴
                 if (pitchHistory.length > 0) {
                     pitchHistory.shift();
                     const avgCents = pitchHistory.length > 0 ? pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length : -50;
                     needleEl.style.left = Math.max(5, (50 + (avgCents * 0.9))) + "%";
-                } else { needleEl.style.left = "5%"; }
+                } else {
+                    needleEl.style.left = "5%";
+                }
                 noteEl.classList.remove('tuned');
                 needleEl.style.borderColor = "#ff9f43";
             }
             animationId = requestAnimationFrame(updateLoop);
         }
 
+        // [수음 정밀도 엔진] 날것의 음파 데이터를 정교하게 가공
         function getPitch(buf, sampleRate) {
             let size = buf.length, rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            if (Math.sqrt(rms / size) < 0.001) return -1;
+            if (Math.sqrt(rms / size) < 0.001) return -1; // 최소 소리 크기 미만 무시
+
             let c = new Float32Array(size);
             for (let i = 0; i < size; i++) {
                 for (let j = 0; j < size - i; j++) { c[i] = c[i] + buf[j] * buf[j + i]; }
