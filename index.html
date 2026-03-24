@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SYM Guitar Tuner v23 - Average Engine</title>
+    <title>SYM Guitar Tuner v24</title>
     <style>
-        /* [디자인] 작가님이 만족하신 시원한 상하 레이아웃 유지 */
+        /* 레이아웃 유지 */
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
@@ -26,10 +26,14 @@
             display: flex; align-items: center; overflow: hidden;
         }
         .needle {
-            position: absolute; width: 8px; height: 100%; 
-            background: #000; left: 50%; transform: translateX(-50%); z-index: 10;
+            position: absolute; 
+            width: 8px; height: 100%; 
+            background: #000; 
+            left: 5%; /* [수정] 초기 위치를 왼쪽 끝(약 -50센트 지점)으로 설정 */
+            transform: translateX(-50%); z-index: 10;
             border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43;
             box-sizing: border-box;
+            transition: border-color 0.2s;
         }
         .ticks-container {
             position: absolute; width: 90%; left: 5%; height: 100%;
@@ -69,9 +73,9 @@
         let audioContext, analyser, animationId;
         let isRunning = false;
         
-        // [작가님 제안 반영] 평균값을 구하기 위한 데이터 저장소
+        // 평균값 데이터 저장소
         let pitchHistory = []; 
-        const HISTORY_SIZE = 15; // 최근 15개의 음정 데이터를 저장 (이 숫자가 크면 더 부드럽고, 작으면 더 빠름)
+        const HISTORY_SIZE = 15; 
 
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
         const needleEl = document.getElementById('needle'), noteEl = document.getElementById('noteDisplay');
@@ -93,22 +97,16 @@
 
         startBtn.addEventListener('click', async () => {
             if (isRunning) { stopTuner(); return; }
-            
             try {
                 const AudioCtx = window.AudioContext || window.webkitAudioContext;
                 audioContext = new AudioCtx({ sampleRate: 48000 });
-
-                // 아이폰의 가공되지 않은 소리를 받기 위한 강제 설정
                 const stream = await navigator.mediaDevices.getUserMedia({
                     audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
                 });
-
                 if (audioContext.state === 'suspended') { await audioContext.resume(); }
-
                 analyser = audioContext.createAnalyser();
                 analyser.fftSize = 2048; 
-                analyser.smoothingTimeConstant = 0; // 분석기의 자체 필터를 0으로 만들어 생생한 데이터 확보
-
+                analyser.smoothingTimeConstant = 0; 
                 audioContext.createMediaStreamSource(stream).connect(analyser);
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
@@ -125,6 +123,9 @@
             startBtn.classList.remove('running');
             noteEl.innerText = "--"; freqEl.innerText = "0 Hz";
             pitchHistory = [];
+            // 중지 시 바늘을 다시 왼쪽 끝으로 보냄
+            needleEl.style.left = "5%";
+            needleEl.style.borderColor = "#ff9f43";
         }
 
         function updateLoop() {
@@ -139,23 +140,20 @@
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
-                // [핵심] 필터 대신 평균값 엔진 사용
                 pitchHistory.push(rawCents);
-                if (pitchHistory.length > HISTORY_SIZE) pitchHistory.shift(); // 가장 오래된 데이터 버림
+                if (pitchHistory.length > HISTORY_SIZE) pitchHistory.shift();
 
-                // 바구니에 담긴 값들의 평균 계산
                 const avgCents = pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length;
 
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = Math.round(pitch) + " Hz";
 
-                // 평균값을 바늘 위치로 변환
+                // 평균값을 바늘 위치로 변환 (0센트가 중앙 50%)
                 let targetPos = 50 + (avgCents * 0.9);
                 targetPos = Math.max(5, Math.min(95, targetPos));
                 needleEl.style.left = targetPos + "%";
 
-                // 정튜닝 판정
-                if (Math.abs(avgCents) < 3) { // 평균 오차가 3센트 미만일 때
+                if (Math.abs(avgCents) < 3) {
                     noteEl.classList.add('tuned');
                     needleEl.style.borderColor = "#2ecc71";
                 } else {
@@ -163,19 +161,22 @@
                     needleEl.style.borderColor = avgCents < 0 ? "#ff9f43" : "#ff4d4d";
                 }
             } else {
-                // 소리가 끊겨도 바구니를 천천히 비워 바늘이 서서히 0점으로 돌아가게 함
+                // [수정] 소리가 없을 때 바구니의 값을 서서히 낮추어 바늘을 왼쪽 끝(5%)으로 이동시킴
                 if (pitchHistory.length > 0) {
                     pitchHistory.shift();
-                    const avgCents = pitchHistory.length > 0 ? pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length : 0;
-                    needleEl.style.left = (50 + (avgCents * 0.9)) + "%";
+                    const avgCents = pitchHistory.length > 0 ? pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length : -50;
+                    let targetPos = 50 + (avgCents * 0.9);
+                    needleEl.style.left = Math.max(5, targetPos) + "%";
+                } else {
+                    needleEl.style.left = "5%";
                 }
                 noteEl.classList.remove('tuned');
+                needleEl.style.borderColor = "#ff9f43";
             }
 
             animationId = requestAnimationFrame(updateLoop);
         }
 
-        // 수음 정밀도 극대화 (0.001 감도)
         function getPitch(buf, sampleRate) {
             let size = buf.length, rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
