@@ -2,50 +2,55 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner v13 - Dynamic Color</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SYM Guitar Tuner v15</title>
     <style>
-        /* [1] 기본 레이아웃 */
+        /* [1] 스마트폰 화면 맞춤 레이아웃 */
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: space-between; height: 100vh; margin: 0; padding: 20px 0; 
+            justify-content: center; /* 모든 요소를 중앙으로 응축 */
+            height: 100dvh; /* 주소창 변화에 대응하는 동적 높이 */
+            margin: 0; padding: 10px; 
             font-family: 'Segoe UI', sans-serif; box-sizing: border-box; 
             user-select: none; overflow: hidden;
         }
 
-        /* [2] 상단 디스플레이 */
-        .top-display { text-align: center; margin-top: 10px; }
-        .note-alpha {
-            font-size: 7.5rem; font-weight: 900; color: #7f8c8d; line-height: 1;
+        /* 전체 컨텐츠를 감싸는 내부 박스 (응축 핵심) */
+        .main-wrapper {
+            width: 100%; max-width: 400px; /* 가로폭 제한으로 응축 */
+            display: flex; flex-direction: column; align-items: center;
+            gap: 2vh; /* 요소 간 간격을 화면 높이에 비례해 조절 */
         }
-        /* 정튜닝 시 글자만 초록색 네온 효과 */
+
+        /* [2] 상단 음명 표시부 */
+        .top-display { text-align: center; }
+        .note-alpha {
+            font-size: 6rem; font-weight: 900; color: #7f8c8d; line-height: 1.1;
+            transition: all 0.2s;
+        }
         .note-alpha.tuned {
             color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 50px #2ecc71;
         }
         .freq-display { 
-            font-size: 1.8rem; color: #636e72; font-family: monospace; 
-            margin-top: 5px; font-weight: bold;
+            font-size: 1.5rem; color: #636e72; font-family: monospace; font-weight: bold;
         }
 
-        /* [3] 중앙 유리관 */
+        /* [3] 중앙 유리관 (컴팩트 사이즈) */
         .glass-rect-container {
-            position: relative; width: 92%; max-width: 550px; height: 170px;
+            position: relative; width: 100%; height: 140px;
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(0, 0, 0, 0.1);
-            border-radius: 12px;
-            box-shadow: inset 0 10px 25px rgba(255, 255, 255, 0.5), 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: inset 0 5px 15px rgba(255, 255, 255, 0.5), 0 5px 15px rgba(0, 0, 0, 0.1);
             display: flex; align-items: center; overflow: hidden;
         }
 
-        /* [4] 다이내믹 바늘 (JS에서 배경색 제어) */
+        /* 다이내믹 바늘 */
         .needle {
-            position: absolute; width: 8px; height: 100%; 
-            background: #000; /* 중심은 검정 유지 */
-            left: 5%; transform: translateX(-50%); z-index: 10;
-            box-sizing: border-box;
-            border-left: 3px solid #ff9f43; /* 초기 테두리 주황 */
-            border-right: 3px solid #ff9f43;
-            transition: border-color 0.1s ease; /* 색상 변화를 부드럽게 */
+            position: absolute; width: 6px; height: 100%; 
+            background: #000; left: 5%; transform: translateX(-50%); z-index: 10;
+            border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43;
+            box-sizing: border-box; transition: border-color 0.1s;
         }
 
         /* 눈금 및 가이드 */
@@ -54,79 +59,72 @@
             display: flex; justify-content: space-between; align-items: center;
             z-index: 1; opacity: 0.2;
         }
-        .tick { width: 1px; height: 12px; background: #000; position: relative; }
-        .tick.major { height: 40px; width: 2px; }
+        .tick { width: 1px; height: 10px; background: #000; }
+        .tick.major { height: 30px; width: 2px; position: relative; }
         .tick-label {
-            position: absolute; bottom: -28px; left: 50%;
-            transform: translateX(-50%); font-size: 0.85rem; font-weight: bold;
+            position: absolute; bottom: -22px; left: 50%;
+            transform: translateX(-50%); font-size: 0.7rem; font-weight: bold;
         }
         .center-guide {
             position: absolute; width: 2px; height: 100%;
-            background: rgba(255, 255, 255, 0.5); left: 50%;
-            transform: translateX(-50%); z-index: 2;
+            background: rgba(255, 255, 255, 0.6); left: 50%; transform: translateX(-50%); z-index: 2;
         }
 
-        /* [5] 하단 영역 */
+        /* [4] 하단 조작부 */
         .bottom-area {
-            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 15px;
+            width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px;
         }
         .tuner-btn {
-            padding: 12px 40px; font-size: 1.1rem; font-weight: bold;
-            background: #34495e; border: none; color: white; border-radius: 30px; cursor: pointer;
+            padding: 15px 50px; font-size: 1.2rem; font-weight: bold;
+            background: #34495e; border: none; color: white; border-radius: 40px; 
+            cursor: pointer; -webkit-tap-highlight-color: transparent;
         }
         .tuner-btn.running { background: #c0392b; }
         .lab-watermark {
-            color: #7f8c8d; font-weight: bold; letter-spacing: 1.5px; font-size: 0.85rem;
+            color: #7f8c8d; font-weight: bold; font-size: 0.8rem; letter-spacing: 1px;
         }
     </style>
 </head>
 <body>
 
-    <div class="top-display">
-        <div id="noteDisplay" class="note-alpha">--</div>
-        <div id="freqDisplay" class="freq-display">0 Hz</div>
-    </div>
+    <div class="main-wrapper">
+        <div class="top-display">
+            <div id="noteDisplay" class="note-alpha">--</div>
+            <div id="freqDisplay" class="freq-display">0 Hz</div>
+        </div>
 
-    <div class="glass-rect-container">
-        <div id="ticksContainer" class="ticks-container"></div>
-        <div class="center-guide"></div>
-        <div id="needle" class="needle"></div>
-    </div>
+        <div class="glass-rect-container">
+            <div id="ticksContainer" class="ticks-container"></div>
+            <div class="center-guide"></div>
+            <div id="needle" class="needle"></div>
+        </div>
 
-    <div class="bottom-area">
-        <button id="startBtn" class="tuner-btn">튜너 시작</button>
-        <div class="lab-watermark">SONG,YOUNG-MIN Guitar Lab</div>
+        <div class="bottom-area">
+            <button id="startBtn" class="tuner-btn">튜너 시작</button>
+            <div class="lab-watermark">SONG,YOUNG-MIN Guitar Lab</div>
+        </div>
     </div>
 
     <script>
         let audioContext, analyser, animationId;
         let isRunning = false;
         let lastBeepTime = 0;
+        let currentPos = 5, velocity = 0, smoothedCents = 0;
+        const gravity = 0.8;
 
-        let currentPos = 5;      
-        let velocity = 0;        
-        let smoothedCents = 0;   
-        const gravity = 0.8;      
-
-        const needleEl = document.getElementById('needle');
-        const noteEl = document.getElementById('noteDisplay');
-        const freqEl = document.getElementById('freqDisplay');
-        const startBtn = document.getElementById('startBtn');
+        const needleEl = document.getElementById('needle'), noteEl = document.getElementById('noteDisplay');
+        const freqEl = document.getElementById('freqDisplay'), startBtn = document.getElementById('startBtn');
         const ticksContainer = document.getElementById('ticksContainer');
-
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
         function initTicks() {
-            for (let i = -50; i <= 50; i += 5) {
+            for (let i = -50; i <= 50; i += 10) {
                 const tick = document.createElement('div');
-                tick.className = 'tick';
-                if (i % 10 === 0) {
-                    tick.classList.add('major');
-                    const label = document.createElement('div');
-                    label.className = 'tick-label';
-                    label.innerText = i === 0 ? "0" : (i > 0 ? "+" + i : i);
-                    tick.appendChild(label);
-                }
+                tick.className = 'tick major';
+                const label = document.createElement('div');
+                label.className = 'tick-label';
+                label.innerText = i === 0 ? "0" : (i > 0 ? "+" + i : i);
+                tick.appendChild(label);
                 ticksContainer.appendChild(tick);
             }
         }
@@ -139,19 +137,33 @@
 
         async function startTuner() {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
-            audioContext = new AudioCtx();
+            
+            // 아이폰 전용 설정: 샘플레이트 고정 및 레이턴시 최적화
+            audioContext = new AudioCtx({ latencyHint: 'interactive', sampleRate: 44100 });
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
+
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } 
-                });
+                // 아이폰 고음 차단 방지: 모든 필터링 옵션 비활성화
+                const constraints = {
+                    audio: {
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                // iOS 세션 깨우기
+                if (audioContext.state === 'suspended') { await audioContext.resume(); }
+
                 audioContext.createMediaStreamSource(stream).connect(analyser);
                 isRunning = true;
                 startBtn.innerText = "튜너 중지";
                 startBtn.classList.add('running');
                 updateLoop();
-            } catch (err) { alert("마이크 권한이 필요합니다."); }
+            } catch (err) { alert("마이크 권한을 허용해 주세요."); }
         }
 
         function stopTuner() {
@@ -160,125 +172,84 @@
             isRunning = false;
             startBtn.innerText = "튜너 시작";
             startBtn.classList.remove('running');
-            noteEl.innerText = "--";
-            freqEl.innerText = "0 Hz";
+            noteEl.innerText = "--"; freqEl.innerText = "0 Hz";
             noteEl.classList.remove('tuned');
-            needleEl.style.borderColor = "#ff9f43"; // 색상 초기화
+            needleEl.style.borderColor = "#ff9f43";
         }
 
-        /**
-         * 바늘의 위치에 따라 테두리 색상을 계산하는 핵심 함수
-         * @param {number} pos - 바늘의 현재 위치 (5% ~ 95%)
-         * @param {boolean} isTuned - 정튜닝 여부 (1Hz 이내)
-         */
         function updateNeedleColor(pos, isTuned) {
             if (isTuned) {
-                // [1] 정튜닝 시: 선명한 초록색
                 needleEl.style.borderColor = "#2ecc71";
                 needleEl.style.boxShadow = "0 0 15px #2ecc71";
                 return;
             }
-
-            // 중앙(50%) 기준 오차 계산 (-45 ~ +45)
             const offset = pos - 50; 
-            let color;
-
-            if (offset < 0) {
-                // [2] 음이 낮을 때 (왼쪽): 주황 계열
-                // -45(진한 주황) -> 0(연한 주황)
-                const ratio = Math.abs(offset) / 45; // 0 ~ 1 사이 비율
-                const lightness = 60 + (ratio * -10); // 중앙으로 올수록 밝아짐
-                color = `hsl(30, 100%, ${lightness}%)`; // 주황색 HSL 계산
-            } else {
-                // [3] 음이 높을 때 (오른쪽): 빨강 계열
-                // 0(연한 빨강) -> +45(진한 빨강)
-                const ratio = offset / 45; 
-                const lightness = 60 - (ratio * 20); // 멀어질수록 진해짐(어두워짐)
-                color = `hsl(0, 100%, ${lightness}%)`; // 빨간색 HSL 계산
-            }
-            
+            let color = offset < 0 
+                ? `hsl(30, 100%, ${60 + (Math.abs(offset)/45 * -10)}%)` 
+                : `hsl(0, 100%, ${60 - (offset/45 * 20)}%)`;
             needleEl.style.borderColor = color;
             needleEl.style.boxShadow = `0 0 10px ${color}`;
         }
 
         function updateLoop() {
             if (!isRunning) return;
-
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
             const pitch = getPitch(buffer, audioContext.sampleRate);
-
             let isTunedThisFrame = false;
 
             if (pitch !== -1 && pitch > 50 && pitch < 1200) {
-                const intPitch = Math.round(pitch);
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
 
-                let followSpeed, frictionValue;
-                if (pitch >= 200) {
-                    followSpeed = 0.05; frictionValue = 0.7;
-                    smoothedCents = (smoothedCents * 0.92) + (rawCents * 0.08);
-                } else {
-                    followSpeed = 0.15; frictionValue = 0.8;
-                    smoothedCents = (smoothedCents * 0.6) + (rawCents * 0.4);
-                }
+                // 고음역대(1,2번줄) 하이브리드 필터링 강화
+                let followSpeed = pitch >= 200 ? 0.04 : 0.15;
+                let frictionValue = pitch >= 200 ? 0.65 : 0.8;
+                smoothedCents = pitch >= 200 ? (smoothedCents * 0.93) + (rawCents * 0.07) : (smoothedCents * 0.6) + (rawCents * 0.4);
 
                 noteEl.innerText = noteStrings[noteNum % 12];
-                freqEl.innerText = intPitch + " Hz";
+                freqEl.innerText = Math.round(pitch) + " Hz";
 
-                let targetPos = 50 + (smoothedCents * 0.9);
+                let targetPos = 50 + (smoothedCents * 0.85);
                 targetPos = Math.max(5, Math.min(95, targetPos));
-
                 velocity += (targetPos - currentPos) * followSpeed;
                 velocity *= frictionValue; 
 
                 // 1Hz 오차 판정
-                if (Math.abs(pitch - standardFreq) <= 1.0) {
+                if (Math.abs(pitch - standardFreq) <= 1.1) {
                     isTunedThisFrame = true;
                     noteEl.classList.add('tuned');
                     playNoteBeep(standardFreq);
-                } else {
-                    noteEl.classList.remove('tuned');
-                }
+                } else { noteEl.classList.remove('tuned'); }
             } else {
-                velocity += (5 - currentPos) * 0.02; 
-                velocity -= gravity * 0.1;
-                velocity *= 0.8;
+                velocity += (5 - currentPos) * 0.02; velocity -= gravity * 0.1; velocity *= 0.8;
                 noteEl.classList.remove('tuned');
             }
 
             currentPos += velocity;
-            if (currentPos <= 5) { currentPos = 5; velocity = 0; }
-            if (currentPos >= 95) { currentPos = 95; velocity = 0; }
-
-            // [추가] 실시간 색상 업데이트 함수 호출
+            currentPos = Math.max(5, Math.min(95, currentPos));
             updateNeedleColor(currentPos, isTunedThisFrame);
-
             needleEl.style.left = currentPos + "%";
             animationId = requestAnimationFrame(updateLoop);
         }
 
         function playNoteBeep(freq) {
-            const now = Date.now();
-            if (now - lastBeepTime < 950) return;
+            const now = Date.now(); if (now - lastBeepTime < 1000) return;
             lastBeepTime = now;
-            const osc = audioContext.createOscillator();
-            const gain = audioContext.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(freq, audioContext.currentTime);
-            gain.gain.setValueAtTime(0.04, audioContext.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.2);
+            const osc = audioContext.createOscillator(), gain = audioContext.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioContext.currentTime);
+            gain.gain.setValueAtTime(0.03, audioContext.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
             osc.connect(gain); gain.connect(audioContext.destination);
-            osc.start(); osc.stop(audioContext.currentTime + 0.2);
+            osc.start(); osc.stop(audioContext.currentTime + 0.1);
         }
 
         function getPitch(buf, sampleRate) {
-            let size = buf.length;
-            let rms = 0;
+            let size = buf.length, rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
-            if (Math.sqrt(rms / size) < 0.009) return -1;
+            // 아이폰 미세 진동 인식을 위해 임계값 살짝 조정
+            if (Math.sqrt(rms / size) < 0.007) return -1;
             let c = new Array(size).fill(0);
             for (let i = 0; i < size; i++)
                 for (let j = 0; j < size - i; j++)
@@ -288,8 +259,7 @@
             for (let i = d; i < size; i++) {
                 if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
             }
-            if (maxpos !== -1) return sampleRate / maxpos;
-            return -1;
+            return maxpos !== -1 ? sampleRate / maxpos : -1;
         }
     </script>
 </body>
