@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SYM Guitar Tuner</title>
+    <title>SYM Guitar Tuner (Glass Tube Mode)</title>
     <style>
         /* 기본 스타일 초기화 및 배경 설정 */
         body { 
-            background: #1a1a1a; /* 짙은 회색 배경 */
+            background: #121212; /* 더 짙은 검은색 배경 */
             color: white; 
             display: flex; 
             flex-direction: column; 
@@ -19,68 +19,94 @@
             overflow: hidden; /* 스크롤 방지 */
         }
 
-        /* 메인 튜너 컨테이너 (반원 모양) */
-        .tuner-box {
+        /* [요청사항] 가로로 긴 박스형 투명 유리관 튜너 */
+        .tuner-glass-tube {
             position: relative;
-            width: 320px;
-            height: 160px; /* 반원 높이 */
-            border: 6px solid #444;
-            border-bottom: none;
-            border-radius: 160px 160px 0 0; /* 상단만 둥글게 */
-            background: #2c3e50; /* 짙은 파란색 계열 배경 */
-            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            width: 90%; /* 화면 너비의 90% */
+            max-width: 500px; /* 최대 너비 제한 */
+            height: 100px; /* 높이는 낮춤 */
+            border: 2px solid rgba(255, 255, 255, 0.2); /* 얇은 유리 테두리 */
+            background: rgba(255, 255, 255, 0.05); /* 아주 옅은 반투명 배경 */
+            border-radius: 10px; /* 살짝 둥근 모서리 */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(255, 255, 255, 0.1); /* 외부 및 내부 그림자 */
             overflow: hidden;
             margin-bottom: 20px;
+            display: flex;
+            align-items: flex-end; /* 바늘을 아래쪽에 배치 */
+            justify-content: center;
         }
 
-        /* 아날로그 바늘 */
+        /* 유리관 하이라이트 효과 */
+        .tuner-glass-tube::after {
+            content: '';
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            right: 5px;
+            height: 20%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 100%);
+            border-radius: 5px;
+            pointer-events: none;
+        }
+
+        /* [요청사항] 부드러운 바늘 */
         .needle {
             position: absolute;
-            bottom: 0; /* 반원의 중심 하단 */
+            bottom: 0px; /* 유리관 바닥에 고정 */
             left: 50%;
-            width: 4px;
-            height: 140px; /* 바늘 길이 */
+            width: 3px;
+            height: 90px; /* 바늘 길이 */
             background: #e74c3c; /* 빨간색 바늘 */
             transform-origin: bottom center; /* 아래쪽 중앙을 기준으로 회전 */
             transform: translateX(-50%) rotate(0deg); /* 초기 상태: 정중앙 */
-            transition: transform 0.05s linear; /* 부드러운 움직임을 위한 짧은 트랜지션 */
+            /* CSS transition은 제거하고 JS에서 부드럽게 처리합니다 */
             z-index: 10;
-            border-radius: 4px 4px 0 0;
+            border-radius: 2px;
+            box-shadow: 0 0 5px rgba(231, 76, 60, 0.5); /* 바늘 주위 미세한 발광 */
         }
 
-        /* 중앙 정튜닝 가이드 라인 (초록색) */
+        /* 중앙 가이드 라인 (정튜닝) */
         .center-guide {
             position: absolute;
-            bottom: 0;
+            top: 0;
             left: 50%;
             width: 2px;
             height: 100%;
-            background: #2ecc71; /* 초록색 */
+            background: rgba(46, 204, 113, 0.6); /* 초록색 */
             transform: translateX(-50%);
-            opacity: 0.7;
             z-index: 5;
         }
 
-        /* 눈금 스타일 (선) */
+        /* 눈금 스타일 */
         .gauge-lines {
             position: absolute;
             width: 100%;
             height: 100%;
             top: 0;
             left: 0;
+            pointer-events: none;
         }
         .line {
             position: absolute;
-            bottom: 0;
+            bottom: 0px; /* 유리관 아래쪽에 눈금 배치 */
             left: 50%;
             width: 1px;
-            background: rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.2);
             transform-origin: bottom center;
         }
-        /* 큰 눈금 */
-        .line.big { height: 15px; width: 2px; background: rgba(255,255,255,0.7); }
-        /* 작은 눈금 */
-        .line.small { height: 8px; }
+        /* 큰 눈금 (-50, 0, +50센트) */
+        .line.big { height: 25px; width: 2px; background: rgba(255,255,255,0.5); }
+        /* 작은 눈금 (10센트 단위) */
+        .line.small { height: 12px; }
+
+        /* 눈금 라벨 (숫자) */
+        .gauge-label {
+            position: absolute;
+            bottom: 30px; /* 눈금 위쪽에 표시 */
+            color: rgba(255,255,255,0.4);
+            font-size: 0.7rem;
+            transform: translateX(-50%);
+        }
 
         /* 정보 표시 영역 */
         .info-display { text-align: center; margin-bottom: 30px; }
@@ -100,10 +126,11 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             transition: background 0.2s;
             -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
+            margin-bottom: 50px; /* 워터마크와 겹치지 않게 여백 추가 */
         }
         .start-btn:active { background: #27ae60; transform: scale(0.98); }
 
-        /* [요청사항] 워터마크 스타일 (주황색) */
+        /* 워터마크 스타일 (주황색, 고정) */
         .watermark {
             position: fixed;
             bottom: 15px;
@@ -112,12 +139,13 @@
             font-weight: bold;
             letter-spacing: 1px;
             opacity: 0.8;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
-    <div class="tuner-box">
+    <div class="tuner-glass-tube" id="tunerGlassTube">
         <div class="gauge-lines" id="gaugeLines">
             </div>
         <div class="center-guide"></div>
@@ -139,8 +167,12 @@
            ========================================== */
         let audioContext;       // 오디오 처리 핵심 객체
         let analyser;           // 오디오 분석기 객체
-        let microphone;         // 마이크 입력 스트림 소스
         let isRunning = false;  // 튜너 작동 상태 플래그
+
+        // 부드러운 움직임을 위한 변수
+        let smoothedAngle = 0;   // 현재 부드럽게 처리된 바늘 각도
+        let targetAngle = 0;     // 새로 검출된 목표 바늘 각도
+        const smoothingFactor = 0.1; // [요청사항] 부드러움 정도 (0 ~ 1 사이, 낮을수록 부드럽고 반응 속도가 조금 느려짐)
 
         // DOM 요소 가져오기
         const needleEl = document.getElementById('needle');
@@ -152,7 +184,7 @@
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
         /* ==========================================
-           UI 초기화: 아날로그 눈금 생성
+           UI 초기화: 아날로그 눈금 및 라벨 생성
            ========================================== */
         function createGauge() {
             const gaugeLinesEl = document.getElementById('gaugeLines');
@@ -164,12 +196,19 @@
                 // 0, -50, 50센트는 큰 눈금으로 표시
                 if (i === 0 || i === -50 || i === 50) {
                     line.classList.add('big');
+                    // 주요 눈금 위에 숫자 라벨 추가
+                    const label = document.createElement('div');
+                    label.className = 'gauge-label';
+                    label.innerText = i;
+                    // 센트 값을 각도(-40도 ~ 40도)로 변환하여 CSS 회전 적용
+                    const angle = (i / 50) * 40; // 유리관 크기에 맞춰 각도 조절
+                    label.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                    line.appendChild(label);
                 } else {
                     line.classList.add('small');
                 }
                 
-                // 센트 값을 각도(-45도 ~ 45도)로 변환하여 CSS 회전 적용
-                const angle = (i / 50) * 45; 
+                const angle = (i / 50) * 40; 
                 line.style.transform = `translateX(-50%) rotate(${angle}deg)`;
                 gaugeLinesEl.appendChild(line);
             }
@@ -177,22 +216,20 @@
         createGauge(); // 페이지 로드 시 눈금 생성
 
         /* ==========================================
-           튜너 시작/중지 제어 함수
+           튜너 시작/중지 제어 함수 (아이폰/안드로이드 호환)
            ========================================== */
         startBtnEl.addEventListener('click', async () => {
             if (isRunning) {
-                // 이미 작동 중이면 중지 시도 (Web Audio context를 닫음)
                 if (audioContext) await audioContext.close();
                 isRunning = false;
                 startBtnEl.innerText = "튜너 시작";
                 noteNameEl.innerText = "--";
                 freqValEl.innerText = "0.00 Hz";
-                needleEl.style.transform = `translateX(-50%) rotate(0deg)`; // 바늘 초기화
+                targetAngle = 0; // 목표 각도 초기화
                 return;
             }
 
-            // --- 크로스 브라우저 호환성 처리 (iOS Safari, Android Chrome 등) ---
-            // AudioContext 객체를 브라우저에 맞게 가져옵니다.
+            // --- iOS Safari 호환성 처리 ---
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) {
                 alert("이 브라우저는 Web Audio API를 지원하지 않습니다.");
@@ -200,26 +237,20 @@
             }
 
             audioContext = new AudioContext();
-            
-            // 분석기 생성 및 설정
             analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048; // 분석할 샘플 크기 (크수록 정확하지만 느려짐, 2048이 적당)
+            analyser.fftSize = 2048; // 분석할 샘플 크기
 
             try {
-                // --- 마이크 접근 권한 요청 (iOS/Android 공통 중요 단계) ---
-                // 반드시 사용자의 직접적인 동작(클릭) 이벤트 핸들러 내부에서 호출되어야 함.
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                
-                // 마이크 입력을 AudioContext 소스로 연결
-                microphone = audioContext.createMediaStreamSource(stream);
-                // 소스를 분석기에 연결
+                // --- 마이크 접근 권한 요청 (반드시 클릭 핸들러 내부에서 호출) ---
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const microphone = audioContext.createMediaStreamSource(stream);
                 microphone.connect(analyser);
                 
                 isRunning = true;
                 startBtnEl.innerText = "튜너 중지";
                 
                 // 실시간 분석 루프 시작
-                updatePitch();
+                updatePitchLoop();
 
             } catch (err) {
                 console.error("마이크 접근 실패:", err);
@@ -231,91 +262,75 @@
         /* ==========================================
            실시간 주파수 분석 및 UI 업데이트 루프
            ========================================= */
-        function updatePitch() {
+        function updatePitchLoop() {
             if (!isRunning) return; // 중지 상태면 루프 종료
 
-            // 시간 도메인 데이터를 담을 배열 생성
+            // 1. 오디오 분석 (주파수 검출)
             const buffer = new Float32Array(analyser.fftSize);
-            // 현재 마이크의 파형 데이터를 배열에 복사
             analyser.getFloatTimeDomainData(buffer);
-
-            // --- 알고리즘 호출: 파형 데이터에서 주파수(Hz) 추출 ---
             const pitch = autoCorrelate(buffer, audioContext.sampleRate);
 
-            // 유효한 주파수가 검출된 경우에만 UI 업데이트
-            if (pitch !== -1 && pitch > 50 && pitch < 1000) { // 기타 주파수 범위 내로 제한 (약 80Hz ~ 330Hz)
-                // 1. 주파수를 바탕으로 가장 가까운 음노트 번호(MIDI) 계산
+            // 2. 유효한 주파수가 검출된 경우에만 정보 업데이트 및 목표 각도 계산
+            if (pitch !== -1 && pitch > 50 && pitch < 1000) { 
                 const noteNum = noteFromPitch(pitch);
-                // 2. 해당 음노트의 정확한 표준 주파수와 입력 주파수의 차이(Cents) 계산
                 const detuneCents = centsOffFromPitch(pitch, noteNum);
                 
-                // 3. UI 업데이트
-                noteNameEl.innerText = noteStrings[noteNum % 12]; // 음명 표시
-                freqValEl.innerText = pitch.toFixed(2) + " Hz";   // 주파수 표시
+                // 음명 및 주파수 표시
+                noteNameEl.innerText = noteStrings[noteNum % 12];
+                freqValEl.innerText = pitch.toFixed(2) + " Hz";   
                 
-                // 4. 바늘 움직임 (iOS에서도 부드럽게 작동하도록 미세 조정)
-                // 차이값(Cents)을 각도(-45도 ~ 45도)로 매핑. 입력범위는 -50~+50센트로 제한.
+                // 목표 각도 계산 (Cents를 각도로 매핑, -40도 ~ +40도)
                 const limitedCents = Math.max(-50, Math.min(50, detuneCents));
-                const needleAngle = (limitedCents / 50) * 45; 
-                needleEl.style.transform = `translateX(-50%) rotate(${needleAngle}deg)`;
+                targetAngle = (limitedCents / 50) * 40; // 박스형 유리관에 맞춰 각도를 조금 줄임
             }
 
-            // 다음 프레임에서 이 함수를 다시 호출하여 무한 루프 구현 (성능 효율적)
-            requestAnimationFrame(updatePitch);
+            // [요청사항] 로패스 필터(Low-pass Filter)를 사용해 바늘 움직임을 부드럽게 만듭니다.
+            // smoothedAngle = smoothedAngle + (targetAngle - smoothedAngle) * smoothingFactor;
+            // 즉, 현재 각도와 목표 각도 차이의 일부(smoothingFactor)만큼만 매 프레임 이동합니다.
+            smoothedAngle += (targetAngle - smoothedAngle) * smoothingFactor;
+
+            // 3. 부드럽게 계산된 각도를 바늘에 적용
+            needleEl.style.transform = `translateX(-50%) rotate(${smoothedAngle}deg)`;
+
+            // 다음 프레임에서 이 함수를 다시 호출
+            requestAnimationFrame(updatePitchLoop);
         }
 
         /* ==========================================
-           [핵심 알고리즘] 자기상관법 (Autocorrelation)
-           파형의 반복 주기를 찾아 주파수를 계산합니다.
+           주파수 검출 알고리즘 및 유틸리티 함수 (이전과 동일)
            ========================================= */
+        
+        // 자기상관법 (Autocorrelation) 알고리즘
         function autoCorrelate(buf, sampleRate) {
             let SIZE = buf.length;
             let rms = 0;
+            for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+            if (Math.sqrt(rms / SIZE) < 0.01) return -1; 
 
-            // 1. 신호의 세기(RMS) 계산하여 소리가 너무 작으면 무시
-            for (let i = 0; i < SIZE; i++) {
-                rms += buf[i] * buf[i];
-            }
-            if (Math.sqrt(rms / SIZE) < 0.01) return -1; // 마이크 입력이 약하면 분석 안 함
-
-            // 2. 신호 자르기 (영교차점 기반으로 클리핑하여 노이즈 줄임)
             let r1 = 0, r2 = SIZE - 1, thres = 0.2;
             for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
             for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
             buf = buf.slice(r1, r2);
             SIZE = buf.length;
 
-            // 3. 자기상관 계산 (신호를 자신과 겹쳐보며 가장 잘 맞는 주기를 찾음)
             let c = new Array(SIZE).fill(0);
             for (let i = 0; i < SIZE; i++)
                 for (let j = 0; j < SIZE - i; j++)
                     c[i] = c[i] + buf[j] * buf[j + i];
 
-            // 4. 첫 번째 피크(반복 주기) 찾기
             let d = 0; while (c[d] > c[d + 1]) d++;
             let maxval = -1, maxpos = -1;
             for (let i = d; i < SIZE; i++) {
-                if (c[i] > maxval) {
-                    maxval = c[i];
-                    maxpos = i;
-                }
+                if (c[i] > maxval) { maxval = c[i]; maxpos = i; }
             }
-
-            // 5. 최종 주파수 계산: 샘플링 레이트 / 주기(maxpos)
-            if (maxpos !== -1) {
-                return sampleRate / maxpos;
-            }
+            if (maxpos !== -1) return sampleRate / maxpos;
             return -1;
         }
-
-        /* ==========================================
-           유틸리티 함수: 주파수 <-> 음악적 단위 변환
-           ========================================= */
         
-        // 주파수(Hz)를 MIDI 노트 번호로 변환 (A4=440Hz 기준)
+        // 주파수(Hz)를 MIDI 노트 번호로 변환
         function noteFromPitch(frequency) {
             const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
-            return Math.round(noteNum) + 69; // 69는 A4의 MIDI 번호
+            return Math.round(noteNum) + 69;
         }
 
         // MIDI 노트 번호를 표준 주파수(Hz)로 변환
@@ -324,7 +339,6 @@
         }
 
         // 현재 주파수와 표준 주파수의 차이를 Cents(센트) 단위로 계산
-        // 1센트는 반음의 1/100
         function centsOffFromPitch(frequency, note) {
             return Math.floor(1200 * Math.log(frequency / frequencyFromNoteNumber(note)) / Math.log(2));
         }
