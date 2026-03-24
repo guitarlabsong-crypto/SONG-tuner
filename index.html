@@ -2,181 +2,332 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pitch Copy Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>SYM Guitar Tuner</title>
     <style>
-        body { text-align: center; font-family: 'Pretendard', sans-serif; background: #f0f2f5; padding-top: 50px; }
-        .container { background: white; width: 80%; max-width: 400px; margin: auto; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        #level-info { font-size: 1.2rem; color: #666; }
-        #target-notes { font-size: 2.5rem; font-weight: bold; margin: 20px 0; color: #007aff; min-height: 60px; }
-        #user-note { font-size: 1.5rem; color: #ff9500; height: 30px; }
-        button { background: #007aff; color: white; border: none; padding: 15px 30px; border-radius: 10px; font-size: 1.1rem; cursor: pointer; transition: 0.2s; }
-        button:active { transform: scale(0.95); }
-        .status-msg { margin-top: 20px; font-weight: bold; }
+        /* 기본 스타일 초기화 및 배경 설정 */
+        body { 
+            background: #1a1a1a; /* 짙은 회색 배경 */
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* 스크롤 방지 */
+        }
+
+        /* 메인 튜너 컨테이너 (반원 모양) */
+        .tuner-box {
+            position: relative;
+            width: 320px;
+            height: 160px; /* 반원 높이 */
+            border: 6px solid #444;
+            border-bottom: none;
+            border-radius: 160px 160px 0 0; /* 상단만 둥글게 */
+            background: #2c3e50; /* 짙은 파란색 계열 배경 */
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        /* 아날로그 바늘 */
+        .needle {
+            position: absolute;
+            bottom: 0; /* 반원의 중심 하단 */
+            left: 50%;
+            width: 4px;
+            height: 140px; /* 바늘 길이 */
+            background: #e74c3c; /* 빨간색 바늘 */
+            transform-origin: bottom center; /* 아래쪽 중앙을 기준으로 회전 */
+            transform: translateX(-50%) rotate(0deg); /* 초기 상태: 정중앙 */
+            transition: transform 0.05s linear; /* 부드러운 움직임을 위한 짧은 트랜지션 */
+            z-index: 10;
+            border-radius: 4px 4px 0 0;
+        }
+
+        /* 중앙 정튜닝 가이드 라인 (초록색) */
+        .center-guide {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 2px;
+            height: 100%;
+            background: #2ecc71; /* 초록색 */
+            transform: translateX(-50%);
+            opacity: 0.7;
+            z-index: 5;
+        }
+
+        /* 눈금 스타일 (선) */
+        .gauge-lines {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+        .line {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 1px;
+            background: rgba(255,255,255,0.3);
+            transform-origin: bottom center;
+        }
+        /* 큰 눈금 */
+        .line.big { height: 15px; width: 2px; background: rgba(255,255,255,0.7); }
+        /* 작은 눈금 */
+        .line.small { height: 8px; }
+
+        /* 정보 표시 영역 */
+        .info-display { text-align: center; margin-bottom: 30px; }
+        .note-name { font-size: 4rem; font-weight: bold; color: #2ecc71; text-shadow: 0 0 10px rgba(46,204,113,0.5); }
+        .frequency-val { font-size: 1.2rem; color: #bdc3c7; letter-spacing: 1px; }
+
+        /* 시작 버튼 스타일 */
+        .start-btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: #2ecc71;
+            border: none;
+            color: white;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+            -webkit-tap-highlight-color: transparent; /* 모바일 터치 하이라이트 제거 */
+        }
+        .start-btn:active { background: #27ae60; transform: scale(0.98); }
+
+        /* [요청사항] 워터마크 스타일 (주황색) */
+        .watermark {
+            position: fixed;
+            bottom: 15px;
+            font-size: 0.85rem;
+            color: #ff9f43; /* 주황색 */
+            font-weight: bold;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div id="level-info">Level 1</div>
-    <div id="target-notes">준비되셨나요?</div>
-    <div id="user-note">내 목소리: -</div>
-    <p id="instruction">시작 버튼을 눌러 소리를 듣고 따라 하세요!</p>
-    <button id="start-btn" onclick="initGame()">게임 시작</button>
-    <div class="status-msg" id="status"></div>
-</div>
+    <div class="tuner-box">
+        <div class="gauge-lines" id="gaugeLines">
+            </div>
+        <div class="center-guide"></div>
+        <div id="needle" class="needle"></div>
+    </div>
 
-<script>
-/* -----------------------------------------------------------
-   1. 기본 설정 및 변수
------------------------------------------------------------ */
-const NOTES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
-const FREQS = [261.63, 277.18, 293.66, 311.13, 329.63, 349.23, 369.99, 392.00, 415.30, 440.00, 466.16, 493.88]; // 도(C4)~시(B4) 주파수
+    <div class="info-display">
+        <div id="noteName" class="note-name">--</div>
+        <div id="frequencyVal" class="frequency-val">0.00 Hz</div>
+    </div>
 
-let currentLevel = 1;      // 현재 레벨 (문제 개수)
-let targetSequence = [];   // 맞춰야 할 음들의 배열
-let userProgress = 0;      // 사용자가 현재 순서에서 몇 번째 음까지 맞췄는지
-let isListening = false;   // 현재 마이크로 음을 체크 중인지 여부
+    <button id="startBtn" class="start-btn">튜너 시작</button>
 
-let audioCtx, analyser, microphone;
+    <div class="watermark">SONG,YOUNG-MIN Guitar Lab</div>
 
-/* -----------------------------------------------------------
-   2. 게임 시작 및 레벨 세팅
------------------------------------------------------------ */
-async function initGame() {
-    if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    document.getElementById('start-btn').style.display = 'none';
-    startNewLevel();
-}
+    <script>
+        /* ==========================================
+           전역 변수 설정
+           ========================================== */
+        let audioContext;       // 오디오 처리 핵심 객체
+        let analyser;           // 오디오 분석기 객체
+        let microphone;         // 마이크 입력 스트림 소스
+        let isRunning = false;  // 튜너 작동 상태 플래그
 
-function startNewLevel() {
-    userProgress = 0;
-    targetSequence = [];
-    document.getElementById('level-info').innerText = `Level ${currentLevel}`;
-    document.getElementById('status').innerText = "문제를 듣는 중...";
-    
-    // 레벨 숫자만큼 랜덤 음계 생성
-    for(let i=0; i < currentLevel; i++) {
-        let randomIndex = Math.floor(Math.random() * NOTES.length);
-        targetSequence.push(randomIndex);
-    }
+        // DOM 요소 가져오기
+        const needleEl = document.getElementById('needle');
+        const noteNameEl = document.getElementById('noteName');
+        const freqValEl = document.getElementById('frequencyVal');
+        const startBtnEl = document.getElementById('startBtn');
 
-    playSequence(); // 생성된 음들을 소리로 들려줌
-}
+        // 음명 배열 (12반음)
+        const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
-/* -----------------------------------------------------------
-   3. 소리 재생 로직 (문제 들려주기)
------------------------------------------------------------ */
-async function playSequence() {
-    isListening = false;
-    let displayStr = "";
-    
-    for (let i = 0; i < targetSequence.length; i++) {
-        let noteIdx = targetSequence[i];
-        displayStr += NOTES[noteIdx] + " ";
-        document.getElementById('target-notes').innerText = displayStr;
-        
-        await playTone(FREQS[noteIdx], 0.6); // 0.6초간 재생
-        await new Promise(r => setTimeout(r, 200)); // 음 사이 간격
-    }
-    
-    document.getElementById('status').innerText = "이제 따라 부르세요!";
-    startListening();
-}
-
-function playTone(freq, duration) {
-    return new Promise(resolve => {
-        let osc = audioCtx.createOscillator();
-        let gain = audioCtx.createGain();
-        osc.frequency.value = freq;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
-        osc.stop(audioCtx.currentTime + duration);
-        setTimeout(resolve, duration * 1000);
-    });
-}
-
-/* -----------------------------------------------------------
-   4. 음성 분석 및 판정 로직
------------------------------------------------------------ */
-async function startListening() {
-    if (!microphone) {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        microphone = audioCtx.createMediaStreamSource(stream);
-        analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 2048;
-        microphone.connect(analyser);
-    }
-    isListening = true;
-    checkPitch();
-}
-
-function checkPitch() {
-    if (!isListening) return;
-
-    const buffer = new Float32Array(analyser.fftSize);
-    analyser.getFloatTimeDomainData(buffer);
-    
-    const pitch = autoCorrelate(buffer, audioCtx.sampleRate);
-
-    if (pitch !== -1) {
-        const noteIdx = getNoteIndex(pitch);
-        const noteName = NOTES[noteIdx];
-        document.getElementById('user-note').innerText = `내 목소리: ${noteName}`;
-
-        // 정답 판정: 현재 맞춰야 할 순서의 음과 일치하는가?
-        if (noteIdx === targetSequence[userProgress]) {
-            userProgress++;
-            document.getElementById('status').innerText = `정답! (${userProgress}/${currentLevel})`;
-            
-            if (userProgress >= currentLevel) {
-                // 레벨 클리어
-                isListening = false;
-                currentLevel++;
-                setTimeout(() => {
-                    alert("성공! 다음 레벨로 넘어갑니다.");
-                    startNewLevel();
-                }, 500);
-                return;
+        /* ==========================================
+           UI 초기화: 아날로그 눈금 생성
+           ========================================== */
+        function createGauge() {
+            const gaugeLinesEl = document.getElementById('gaugeLines');
+            // -50센트부터 +50센트까지 10센트 단위로 눈금 생성
+            for (let i = -50; i <= 50; i += 10) {
+                const line = document.createElement('div');
+                line.className = 'line';
+                
+                // 0, -50, 50센트는 큰 눈금으로 표시
+                if (i === 0 || i === -50 || i === 50) {
+                    line.classList.add('big');
+                } else {
+                    line.classList.add('small');
+                }
+                
+                // 센트 값을 각도(-45도 ~ 45도)로 변환하여 CSS 회전 적용
+                const angle = (i / 50) * 45; 
+                line.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+                gaugeLinesEl.appendChild(line);
             }
         }
-    }
-    requestAnimationFrame(checkPitch);
-}
+        createGauge(); // 페이지 로드 시 눈금 생성
 
-// 주파수를 음계 인덱스로 변환하는 공식
-function getNoteIndex(frequency) {
-    const semiTone = 12 * (Math.log(frequency / 261.63) / Math.log(2)); // C4 기준
-    return Math.round(semiTone) % 12;
-}
+        /* ==========================================
+           튜너 시작/중지 제어 함수
+           ========================================== */
+        startBtnEl.addEventListener('click', async () => {
+            if (isRunning) {
+                // 이미 작동 중이면 중지 시도 (Web Audio context를 닫음)
+                if (audioContext) await audioContext.close();
+                isRunning = false;
+                startBtnEl.innerText = "튜너 시작";
+                noteNameEl.innerText = "--";
+                freqValEl.innerText = "0.00 Hz";
+                needleEl.style.transform = `translateX(-50%) rotate(0deg)`; // 바늘 초기화
+                return;
+            }
 
-// 피치 검출 알고리즘 (주파수 찾기)
-function autoCorrelate(buffer, sampleRate) {
-    let sum = 0;
-    for (let i = 0; i < buffer.length; i++) sum += buffer[i] * buffer[i];
-    if (Math.sqrt(sum / buffer.length) < 0.02) return -1; // 소리가 너무 작으면 -1 반환
+            // --- 크로스 브라우저 호환성 처리 (iOS Safari, Android Chrome 등) ---
+            // AudioContext 객체를 브라우저에 맞게 가져옵니다.
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) {
+                alert("이 브라우저는 Web Audio API를 지원하지 않습니다.");
+                return;
+            }
 
-    // 실제로는 훨씬 복잡한 로직이 필요하지만, 학습용으로 간단히 구현
-    // 정밀도를 높이려면 PitchDetect.js 같은 외부 라이브러리 사용 권장
-    let bestOffset = -1;
-    let bestCorrelation = 0;
-    for (let offset = 20; offset < 500; offset++) {
-        let correlation = 0;
-        for (let i = 0; i < buffer.length - offset; i++) {
-            correlation += buffer[i] * buffer[i + offset];
+            audioContext = new AudioContext();
+            
+            // 분석기 생성 및 설정
+            analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048; // 분석할 샘플 크기 (크수록 정확하지만 느려짐, 2048이 적당)
+
+            try {
+                // --- 마이크 접근 권한 요청 (iOS/Android 공통 중요 단계) ---
+                // 반드시 사용자의 직접적인 동작(클릭) 이벤트 핸들러 내부에서 호출되어야 함.
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                
+                // 마이크 입력을 AudioContext 소스로 연결
+                microphone = audioContext.createMediaStreamSource(stream);
+                // 소스를 분석기에 연결
+                microphone.connect(analyser);
+                
+                isRunning = true;
+                startBtnEl.innerText = "튜너 중지";
+                
+                // 실시간 분석 루프 시작
+                updatePitch();
+
+            } catch (err) {
+                console.error("마이크 접근 실패:", err);
+                alert("마이크 접근 권한이 필요합니다. 설정에서 마이크 권한을 허용해 주세요.");
+                isRunning = false;
+            }
+        });
+
+        /* ==========================================
+           실시간 주파수 분석 및 UI 업데이트 루프
+           ========================================= */
+        function updatePitch() {
+            if (!isRunning) return; // 중지 상태면 루프 종료
+
+            // 시간 도메인 데이터를 담을 배열 생성
+            const buffer = new Float32Array(analyser.fftSize);
+            // 현재 마이크의 파형 데이터를 배열에 복사
+            analyser.getFloatTimeDomainData(buffer);
+
+            // --- 알고리즘 호출: 파형 데이터에서 주파수(Hz) 추출 ---
+            const pitch = autoCorrelate(buffer, audioContext.sampleRate);
+
+            // 유효한 주파수가 검출된 경우에만 UI 업데이트
+            if (pitch !== -1 && pitch > 50 && pitch < 1000) { // 기타 주파수 범위 내로 제한 (약 80Hz ~ 330Hz)
+                // 1. 주파수를 바탕으로 가장 가까운 음노트 번호(MIDI) 계산
+                const noteNum = noteFromPitch(pitch);
+                // 2. 해당 음노트의 정확한 표준 주파수와 입력 주파수의 차이(Cents) 계산
+                const detuneCents = centsOffFromPitch(pitch, noteNum);
+                
+                // 3. UI 업데이트
+                noteNameEl.innerText = noteStrings[noteNum % 12]; // 음명 표시
+                freqValEl.innerText = pitch.toFixed(2) + " Hz";   // 주파수 표시
+                
+                // 4. 바늘 움직임 (iOS에서도 부드럽게 작동하도록 미세 조정)
+                // 차이값(Cents)을 각도(-45도 ~ 45도)로 매핑. 입력범위는 -50~+50센트로 제한.
+                const limitedCents = Math.max(-50, Math.min(50, detuneCents));
+                const needleAngle = (limitedCents / 50) * 45; 
+                needleEl.style.transform = `translateX(-50%) rotate(${needleAngle}deg)`;
+            }
+
+            // 다음 프레임에서 이 함수를 다시 호출하여 무한 루프 구현 (성능 효율적)
+            requestAnimationFrame(updatePitch);
         }
-        if (correlation > bestCorrelation) {
-            bestCorrelation = correlation;
-            bestOffset = offset;
-        }
-    }
-    return sampleRate / bestOffset;
-}
-</script>
 
+        /* ==========================================
+           [핵심 알고리즘] 자기상관법 (Autocorrelation)
+           파형의 반복 주기를 찾아 주파수를 계산합니다.
+           ========================================= */
+        function autoCorrelate(buf, sampleRate) {
+            let SIZE = buf.length;
+            let rms = 0;
+
+            // 1. 신호의 세기(RMS) 계산하여 소리가 너무 작으면 무시
+            for (let i = 0; i < SIZE; i++) {
+                rms += buf[i] * buf[i];
+            }
+            if (Math.sqrt(rms / SIZE) < 0.01) return -1; // 마이크 입력이 약하면 분석 안 함
+
+            // 2. 신호 자르기 (영교차점 기반으로 클리핑하여 노이즈 줄임)
+            let r1 = 0, r2 = SIZE - 1, thres = 0.2;
+            for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+            for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+            buf = buf.slice(r1, r2);
+            SIZE = buf.length;
+
+            // 3. 자기상관 계산 (신호를 자신과 겹쳐보며 가장 잘 맞는 주기를 찾음)
+            let c = new Array(SIZE).fill(0);
+            for (let i = 0; i < SIZE; i++)
+                for (let j = 0; j < SIZE - i; j++)
+                    c[i] = c[i] + buf[j] * buf[j + i];
+
+            // 4. 첫 번째 피크(반복 주기) 찾기
+            let d = 0; while (c[d] > c[d + 1]) d++;
+            let maxval = -1, maxpos = -1;
+            for (let i = d; i < SIZE; i++) {
+                if (c[i] > maxval) {
+                    maxval = c[i];
+                    maxpos = i;
+                }
+            }
+
+            // 5. 최종 주파수 계산: 샘플링 레이트 / 주기(maxpos)
+            if (maxpos !== -1) {
+                return sampleRate / maxpos;
+            }
+            return -1;
+        }
+
+        /* ==========================================
+           유틸리티 함수: 주파수 <-> 음악적 단위 변환
+           ========================================= */
+        
+        // 주파수(Hz)를 MIDI 노트 번호로 변환 (A4=440Hz 기준)
+        function noteFromPitch(frequency) {
+            const noteNum = 12 * (Math.log(frequency / 440) / Math.log(2));
+            return Math.round(noteNum) + 69; // 69는 A4의 MIDI 번호
+        }
+
+        // MIDI 노트 번호를 표준 주파수(Hz)로 변환
+        function frequencyFromNoteNumber(note) {
+            return 440 * Math.pow(2, (note - 69) / 12);
+        }
+
+        // 현재 주파수와 표준 주파수의 차이를 Cents(센트) 단위로 계산
+        // 1센트는 반음의 1/100
+        function centsOffFromPitch(frequency, note) {
+            return Math.floor(1200 * Math.log(frequency / frequencyFromNoteNumber(note)) / Math.log(2));
+        }
+    </script>
 </body>
 </html>
