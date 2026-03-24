@@ -3,53 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SYM Guitar Tuner v24</title>
+    <title>SYM Guitar Tuner v25 - Universal UI</title>
     <style>
-        /* 레이아웃 유지 */
+        /* [핵심] 모든 기기에서 화면이 꽉 차도록 설정 */
+        html, body {
+            height: 100%;
+            height: -webkit-fill-available; /* iOS/Android 주소창 제외 영역 확보 */
+            margin: 0; padding: 0;
+            overflow: hidden; /* 스크롤 방지 */
+        }
+
         body { 
             background: #cbd3da; color: #333; 
             display: flex; flex-direction: column; align-items: center; 
-            justify-content: space-between; 
-            height: 100dvh; margin: 0; padding: 60px 20px;
-            font-family: 'Segoe UI', sans-serif; box-sizing: border-box; 
-            user-select: none; overflow: hidden;
+            justify-content: space-around; /* 요소를 화면에 골고루 배치 */
+            padding: 4vh 20px; /* 고정 px 대신 화면 높이의 4%만큼 패딩 */
+            font-family: 'Segoe UI', sans-serif; 
+            box-sizing: border-box; 
+            user-select: none;
         }
-        .top-display { text-align: center; }
-        .note-alpha { font-size: 8rem; font-weight: 900; color: #7f8c8d; line-height: 1; }
-        .note-alpha.tuned { color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71; }
-        .freq-display { font-size: 1.8rem; color: #636e72; font-family: monospace; font-weight: bold; margin-top: 15px; }
 
+        .top-display { 
+            flex-shrink: 1; /* 화면이 작아지면 상단 여백부터 줄어듬 */
+            text-align: center; 
+        }
+
+        /* [가변 폰트] 화면 높이에 따라 폰트 크기가 5rem에서 8rem 사이로 자동 조절 */
+        .note-alpha { 
+            font-size: clamp(5rem, 18vh, 8.5rem); 
+            font-weight: 900; color: #7f8c8d; line-height: 1; 
+        }
+        .note-alpha.tuned { color: #fff; text-shadow: 0 0 20px #2ecc71, 0 0 40px #2ecc71; }
+        .freq-display { font-size: 1.5rem; color: #636e72; font-family: monospace; font-weight: bold; margin-top: 1vh; }
+
+        /* [가변 유리관] 높이를 화면의 20% 이내로 제한 */
         .glass-rect-container {
-            position: relative; width: 100%; max-width: 500px; height: 160px;
+            position: relative; width: 100%; max-width: 500px; 
+            height: clamp(100px, 18vh, 160px); 
             background: rgba(255, 255, 255, 0.3); border: 2px solid rgba(0, 0, 0, 0.1);
             border-radius: 20px; box-shadow: inset 0 5px 20px rgba(255, 255, 255, 0.4);
             display: flex; align-items: center; overflow: hidden;
+            flex-shrink: 0; 
         }
+
         .needle {
-            position: absolute; 
-            width: 8px; height: 100%; 
-            background: #000; 
-            left: 5%; /* [수정] 초기 위치를 왼쪽 끝(약 -50센트 지점)으로 설정 */
-            transform: translateX(-50%); z-index: 10;
+            position: absolute; width: 8px; height: 100%; 
+            background: #000; left: 5%; transform: translateX(-50%); z-index: 10;
             border-left: 2px solid #ff9f43; border-right: 2px solid #ff9f43;
             box-sizing: border-box;
-            transition: border-color 0.2s;
         }
+
         .ticks-container {
             position: absolute; width: 90%; left: 5%; height: 100%;
             display: flex; justify-content: space-between; align-items: center; z-index: 1; opacity: 0.3;
         }
-        .tick.major { height: 40px; width: 2px; background: #000; position: relative; }
-        .tick-label { position: absolute; bottom: -28px; left: 50%; transform: translateX(-50%); font-size: 0.85rem; font-weight: bold; }
+        .tick.major { height: 30%; width: 2px; background: #000; position: relative; }
+        .tick-label { position: absolute; bottom: -25px; left: 50%; transform: translateX(-50%); font-size: 0.8rem; font-weight: bold; }
 
-        .bottom-area { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 40px; }
+        .bottom-area { 
+            width: 100%; display: flex; flex-direction: column; align-items: center; 
+            gap: 3vh; /* 요소 간 간격도 화면 크기에 비례 */
+            flex-shrink: 1;
+        }
+
         .tuner-btn {
-            padding: 20px 80px; font-size: 1.5rem; font-weight: bold;
+            padding: clamp(15px, 2.5vh, 25px) clamp(40px, 10vw, 80px); /* 버튼 크기 가변 */
+            font-size: clamp(1.2rem, 3vh, 1.6rem); 
             background: #34495e; border: none; color: white; border-radius: 50px; 
             cursor: pointer; -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
         }
         .tuner-btn.running { background: #c0392b; }
-        .lab-watermark { color: #7f8c8d; font-weight: bold; font-size: 0.9rem; letter-spacing: 2.2px; }
+        .lab-watermark { color: #7f8c8d; font-weight: bold; font-size: 0.85rem; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -70,14 +95,13 @@
     </div>
 
     <script>
+        // [로직 유지] 평균값 엔진 및 아이폰/갤럭시 공용 마이크 설정
         let audioContext, analyser, animationId;
         let isRunning = false;
-        
-        // 평균값 데이터 저장소
         let pitchHistory = []; 
         const HISTORY_SIZE = 15; 
-
         const noteStrings = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        
         const needleEl = document.getElementById('needle'), noteEl = document.getElementById('noteDisplay');
         const freqEl = document.getElementById('freqDisplay'), startBtn = document.getElementById('startBtn');
         const ticksContainer = document.getElementById('ticksContainer');
@@ -123,7 +147,6 @@
             startBtn.classList.remove('running');
             noteEl.innerText = "--"; freqEl.innerText = "0 Hz";
             pitchHistory = [];
-            // 중지 시 바늘을 다시 왼쪽 끝으로 보냄
             needleEl.style.left = "5%";
             needleEl.style.borderColor = "#ff9f43";
         }
@@ -132,23 +155,19 @@
             if (!isRunning) return;
             const buffer = new Float32Array(analyser.fftSize);
             analyser.getFloatTimeDomainData(buffer);
-            
             const pitch = getPitch(buffer, audioContext.sampleRate);
 
             if (pitch !== -1 && pitch > 50 && pitch < 1200) {
                 const noteNum = Math.round(12 * (Math.log(pitch / 440) / Math.log(2))) + 69;
                 const standardFreq = 440 * Math.pow(2, (noteNum - 69) / 12);
                 const rawCents = 1200 * Math.log(pitch / standardFreq) / Math.log(2);
-
                 pitchHistory.push(rawCents);
                 if (pitchHistory.length > HISTORY_SIZE) pitchHistory.shift();
-
                 const avgCents = pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length;
 
                 noteEl.innerText = noteStrings[noteNum % 12];
                 freqEl.innerText = Math.round(pitch) + " Hz";
 
-                // 평균값을 바늘 위치로 변환 (0센트가 중앙 50%)
                 let targetPos = 50 + (avgCents * 0.9);
                 targetPos = Math.max(5, Math.min(95, targetPos));
                 needleEl.style.left = targetPos + "%";
@@ -161,19 +180,14 @@
                     needleEl.style.borderColor = avgCents < 0 ? "#ff9f43" : "#ff4d4d";
                 }
             } else {
-                // [수정] 소리가 없을 때 바구니의 값을 서서히 낮추어 바늘을 왼쪽 끝(5%)으로 이동시킴
                 if (pitchHistory.length > 0) {
                     pitchHistory.shift();
                     const avgCents = pitchHistory.length > 0 ? pitchHistory.reduce((a, b) => a + b, 0) / pitchHistory.length : -50;
-                    let targetPos = 50 + (avgCents * 0.9);
-                    needleEl.style.left = Math.max(5, targetPos) + "%";
-                } else {
-                    needleEl.style.left = "5%";
-                }
+                    needleEl.style.left = Math.max(5, (50 + (avgCents * 0.9))) + "%";
+                } else { needleEl.style.left = "5%"; }
                 noteEl.classList.remove('tuned');
                 needleEl.style.borderColor = "#ff9f43";
             }
-
             animationId = requestAnimationFrame(updateLoop);
         }
 
@@ -181,12 +195,9 @@
             let size = buf.length, rms = 0;
             for (let i = 0; i < size; i++) rms += buf[i] * buf[i];
             if (Math.sqrt(rms / size) < 0.001) return -1;
-
             let c = new Float32Array(size);
             for (let i = 0; i < size; i++) {
-                for (let j = 0; j < size - i; j++) {
-                    c[i] = c[i] + buf[j] * buf[j + i];
-                }
+                for (let j = 0; j < size - i; j++) { c[i] = c[i] + buf[j] * buf[j + i]; }
             }
             let d = 0; while (c[d] > c[d + 1]) d++;
             let maxval = -1, maxpos = -1;
